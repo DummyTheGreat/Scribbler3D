@@ -1,0 +1,3 @@
+[gd_scene format=3 uid="uid://1tleucvfl4h1"]
+
+[node name="PartCollider" type="Node3D"]
