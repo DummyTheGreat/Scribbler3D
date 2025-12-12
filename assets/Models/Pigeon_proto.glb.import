@@ -37,6 +37,30 @@ import_script/path=""
 materials/extract=0
 materials/extract_format=0
 materials/extract_path=""
-_subresources={}
+_subresources={
+"nodes": {
+"PATH:Body": {
+"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
+},
+"PATH:Body/Head": {
+"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
+},
+"PATH:Body/Left Leg": {
+"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
+},
+"PATH:Body/Left Wing": {
+"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
+},
+"PATH:Body/Right Leg": {
+"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
+},
+"PATH:Body/Right Wing": {
+"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
+},
+"PATH:Body/Tail": {
+"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
+}
+}
+}
 gltf/naming_version=2
 gltf/embedded_image_handling=1
