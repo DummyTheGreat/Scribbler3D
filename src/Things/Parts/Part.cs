@@ -1,5 +1,4 @@
 using Godot;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using static Godot.GD;
@@ -8,7 +7,7 @@ public partial class Part : MeshInstance3D {
 
     public int siblingIndex;
 
-    private List<Marker2D> bindingPoints = [];
+    private List<MeshInstance3D> bindingPoints;
     private bool editorMode;
     private bool dragging;
     private Vector3 dragOffset;
@@ -52,26 +51,23 @@ public partial class Part : MeshInstance3D {
     }
 
     public void JoiningInitialization() {
-        Print(this.activeCollider.GetBoundCollider());
         // Set part to recive this part as recieving a join
-        this.activeCollider.GetBoundCollider().GetAssociatedPart().recieving = true;
+        //this.activeCollider.GetBoundCollider().GetAssociatedPart().recieving = true;
 
         // Rotational destination calc
-        destRotation = (this.activeCollider.GetBoundCollider().GlobalRotation - this.activeCollider.Rotation) % (2 * Mathf.Pi);
-        destRotation = destRotation < 0 ? destRotation + (2 * Mathf.Pi) : destRotation;
+        //destRotation = (this.activeCollider.GetBoundCollider().GlobalRotation - this.activeCollider.Rotation) % (2 * Mathf.Pi);
+        //destRotation = destRotation < 0 ? destRotation + (2 * Mathf.Pi) : destRotation;
 
         // Scale destination calc
-        float scaleRatio = this.activeCollider.GetBoundCollider().GetDiameter() / this.activeCollider.GetDiameter();
-        destScale = this.Scale * scaleRatio;
-        this.activeCollider.SetDiameter(this.activeCollider.GetDiameter() * scaleRatio);
+        //float scaleRatio = this.activeCollider.GetBoundCollider().GetDiameter() / this.activeCollider.GetDiameter();
+        //destScale = this.Scale * scaleRatio;
+        //this.activeCollider.SetDiameter(this.activeCollider.GetDiameter() * scaleRatio);
 
         // Simulate the rotation and scaling on the part beforehand in order to accurately determine its positional destination
-        Transform2D transformedPart = new(destRotation, destScale, this.Skew, this.GlobalTransform.Origin);
-        Transform2D simulatedColliderTransform = transformedPart * this.activeCollider.Transform;
-        Vector2 colliderOffset = this.GlobalPosition - simulatedColliderTransform.Origin;
-        destPosition = this.activeCollider.GetBoundCollider().GlobalPosition + colliderOffset;
-
-        Print(destPosition);
+        //Transform2D transformedPart = new(destRotation, destScale, this.Skew, this.GlobalTransform.Origin);
+        //Transform2D simulatedColliderTransform = transformedPart * this.activeCollider.Transform;
+        //Vector2 colliderOffset = this.GlobalPosition - simulatedColliderTransform.Origin;
+        //destPosition = this.activeCollider.GetBoundCollider().GlobalPosition + colliderOffset;
     }
 
     // Signal function recieved from PartCollider
@@ -94,95 +90,112 @@ public partial class Part : MeshInstance3D {
 
     private void EstablishColliders() {
         for (int i = 0; i < this.bindingPoints.Count - 1; i++) {
-            (Vector2, Vector2) line = (
-                this.bindingPoints[i].Position,
-                this.bindingPoints[i + 1].Position
-                );
-            PartCollider partCollider = colliderScene.Instantiate<PartCollider>();
-            this.AddChild(partCollider);
 
-            Vector2 vec = line.Item2 - line.Item1;
-            Vector2 perpNormal = new Vector2(-vec.Y, vec.X).Normalized();
-            Vector2 midpoint = (line.Item2 + line.Item1) * 0.5f;
+            Print(this.bindingPoints[i].Mesh.SurfaceGetArrays(0));
 
-            // Set collider up based on the boundary line's endpoint coordinates
-            partCollider.Position = midpoint;
-            partCollider.Rotate(vec.Angle());
-            partCollider.SetDiameter(vec.Length());
-            //vec.Rotated()
-            RectangleShape2D box = new() { Size = new Vector2(vec.Length(), 30f) };
-            CircleShape2D circle = new() { Radius = vec.Length() * 0.5f };
-            partCollider.GetChild<CollisionShape2D>(0).Shape = circle;
+            //PartCollider partCollider = colliderScene.Instantiate<PartCollider>();
+            //this.AddChild(partCollider);
 
-            partCollider.PartConnect += PartConnect;
-            partCollider.PartDisconnect += PartDisconnect;
+            //Vector2 vec = line.Item2 - line.Item1;
+            //Vector2 perpNormal = new Vector2(-vec.Y, vec.X).Normalized();
+            //Vector2 midpoint = (line.Item2 + line.Item1) * 0.5f;
 
-            // Basically iterate forwards only once if the current line is continuing otherwise iterate forward twice
-            if (i + 1 < this.bindingPoints.Count - 1 &&
-                (this.bindingPoints[i + 1].Name.ToString()[0] == this.bindingPoints[i + 2].Name.ToString()[0])) {
-                i--;
-            }
-            i++;
+            //// Set collider up based on the boundary line's endpoint coordinates
+            //partCollider.Position = midpoint;
+            //partCollider.Rotate(vec.Angle());
+            //partCollider.SetDiameter(vec.Length());
+            ////vec.Rotated()
+            //RectangleShape2D box = new() { Size = new Vector2(vec.Length(), 30f) };
+            //CircleShape2D circle = new() { Radius = vec.Length() * 0.5f };
+            //partCollider.GetChild<CollisionShape2D>(0).Shape = circle;
+
+            //partCollider.PartConnect += PartConnect;
+            //partCollider.PartDisconnect += PartDisconnect;
+
+            //// Basically iterate forwards only once if the current line is continuing otherwise iterate forward twice
+            //if (i + 1 < this.bindingPoints.Count - 1 &&
+            //    (this.bindingPoints[i + 1].Name.ToString()[0] == this.bindingPoints[i + 2].Name.ToString()[0])) {
+            //    i--;
+            //}
+            //i++;
         }
     }
 
     public override void _Ready() {
 
-        this.bindingPoints = [.. this.GetChildren().ToList().OfType<Marker2D>()];
+        this.bindingPoints = [.. this.GetChildren().Where(x => x.GetType() == typeof(MeshInstance3D)).ToList().Cast<MeshInstance3D>()];
         this.editorMode = false;
         this.dragging = false;
         this.joining = false;
         this.recieving = false;
-        this.dragOffset = Vector2.Zero;
+        this.dragOffset = Vector3.Zero;
         this.colliderScene = Load<PackedScene>("src/Things/Parts/PartCollider.tscn");
-        this.destScale = Vector2.One;
+        this.destScale = Vector3.One;
         this.siblingIndex = this.GetIndex();
     }
 
     public override void _Input(InputEvent @event) {
-        if (!this.editorMode || this.joining || this.recieving) return;
+        //if (!this.editorMode || this.joining || this.recieving) return;
 
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouse &&
-            Geometry2D.IsPointInPolygon(ToLocal(mouse.Position) - this.Offset, this.Polygon)) {
-            this.dragOffset = mouse.GlobalPosition - this.GlobalPosition;
-            foreach (Node node in this.GetChildren()) {
-                if (node is PartCollider collider) {
-                    collider.ToggleAreaDetection(true);
-                }
-            }
-            this.activeCollider?.ToggleLinkVisibility(true);
-            EmitSignal(SignalName.PartSelected, this, this.GetIndex());
-        }
-        else if (this.dragging && @event is InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }) {
-            CancelClick();
-        }
-        else if (this.dragging && @event is InputEventMouseMotion motion) {
-            this.GlobalPosition = motion.Position - this.dragOffset;
-        }
+        //if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouse) {
+        //    Camera3D camera = GetViewport().GetCamera3D();
+        //    if (camera == null) return;
+
+        //    Vector3 origin = camera.ProjectRayOrigin(mouse.GlobalPosition);
+        //    Vector3 direction = camera.ProjectRayNormal(mouse.GlobalPosition);
+        //    Vector3 end = origin + direction * 1000f;
+
+        //    PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(origin, end);
+        //    query.CollideWithAreas = true;
+        //    query.CollideWithBodies = true;
+
+        //    Godot.Collections.Dictionary collisions = GetWorld3D().DirectSpaceState.IntersectRay(query);
+
+        //    if (collisions.Count == 0) return;
+
+        //    Print(collisions["collider"]);
+
+        //}
+
+        //    this.dragOffset = mouse.GlobalPosition - this.GlobalPosition;
+        //    foreach (Node node in this.GetChildren()) {
+        //        if (node is PartCollider collider) {
+        //            collider.ToggleAreaDetection(true);
+        //        }
+        //    }
+        //    this.activeCollider?.ToggleLinkVisibility(true);
+        //    EmitSignal(SignalName.PartSelected, this, this.GetIndex());
+        //}
+        //else if (this.dragging && @event is InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }) {
+        //    CancelClick();
+        //}
+        //else if (this.dragging && @event is InputEventMouseMotion motion) {
+        //    this.GlobalPosition = motion.Position - this.dragOffset;
+        //}
     }
 
     public override void _Process(double delta) {
-        if (this.editorMode) {
+        //if (this.editorMode) {
 
-            if (this.activeCollider != null && this.joining) {
-                t += (float)delta * 0.5f;
-                //t = -(Math.Cos(Math.PI * t) - 1) / 2.0;
+        //    if (this.activeCollider != null && this.joining) {
+        //        t += (float)delta * 0.5f;
+        //        //t = -(Math.Cos(Math.PI * t) - 1) / 2.0;
 
-                this.GlobalPosition = this.GlobalPosition.Lerp(destPosition, t);
-                this.GlobalRotation = Mathf.LerpAngle(this.GlobalRotation, destRotation, t);
-                this.Scale = this.Scale.Lerp(this.destScale, t);
+        //        this.GlobalPosition = this.GlobalPosition.Lerp(destPosition, t);
+        //        this.GlobalRotation = Mathf.LerpAngle(this.GlobalRotation, destRotation, t);
+        //        this.Scale = this.Scale.Lerp(this.destScale, t);
 
-                float partRotationPosCompare = this.GlobalRotation < 0 ? this.GlobalRotation + (2 * Mathf.Pi) : this.GlobalRotation;
-                if (this.GlobalPosition.IsEqualApprox(destPosition) && Mathf.IsEqualApprox(partRotationPosCompare, destRotation)) {
-                    Print("Sealed");
-                    this.t = 0f;
-                    this.joining = false;
-                    this.Reparent(activeCollider.GetBoundCollider().GetAssociatedPart());
-                    this.activeCollider.ToggleLinkVisibility(false);
-                    this.activeCollider.GetBoundCollider().GetAssociatedPart().recieving = false;
+        //        float partRotationPosCompare = this.GlobalRotation < 0 ? this.GlobalRotation + (2 * Mathf.Pi) : this.GlobalRotation;
+        //        if (this.GlobalPosition.IsEqualApprox(destPosition) && Mathf.IsEqualApprox(partRotationPosCompare, destRotation)) {
+        //            Print("Sealed");
+        //            this.t = 0f;
+        //            this.joining = false;
+        //            this.Reparent(activeCollider.GetBoundCollider().GetAssociatedPart());
+        //            this.activeCollider.ToggleLinkVisibility(false);
+        //            this.activeCollider.GetBoundCollider().GetAssociatedPart().recieving = false;
 
-                }
-            }
-        }
+        //        }
+        //    }
+        //}
     }
 }

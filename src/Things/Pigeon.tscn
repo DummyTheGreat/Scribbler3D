@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=3 uid="uid://brmu2d6vxxne0"]
+
+[ext_resource type="PackedScene" uid="uid://cjbjomtt4ugxg" path="res://assets/Models/Pigeon_proto.glb" id="1_ryern"]
+[ext_resource type="Script" uid="uid://xhd011b3vuff" path="res://src/Things/Thing.cs" id="2_i8fsp"]
+[ext_resource type="Script" uid="uid://b0qrfki0qeitq" path="res://src/Things/Parts/Part.cs" id="3_20xly"]
+
+[node name="Pigeon" instance=ExtResource("1_ryern")]
+script = ExtResource("2_i8fsp")
+
+[node name="Body" parent="." index="0"]
+script = ExtResource("3_20xly")
+
+[node name="Head" parent="Body" index="0"]
+script = ExtResource("3_20xly")
+
+[node name="Left Leg" parent="Body" index="2"]
+script = ExtResource("3_20xly")
+
+[node name="Left Wing" parent="Body" index="3"]
+script = ExtResource("3_20xly")
+
+[node name="Right Leg" parent="Body" index="6"]
+script = ExtResource("3_20xly")
+
+[node name="Right Wing" parent="Body" index="7"]
+script = ExtResource("3_20xly")
+
+[node name="Tail" parent="Body" index="10"]
+script = ExtResource("3_20xly")

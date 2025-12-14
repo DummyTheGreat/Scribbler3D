@@ -3,7 +3,7 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://df5gttesfjvrk"
+uid="uid://cjbjomtt4ugxg"
 path="res://.godot/imported/Pigeon_proto.glb-08018562a8db3992da254274c2c67736.scn"
 
 [deps]
@@ -37,30 +37,6 @@ import_script/path=""
 materials/extract=0
 materials/extract_format=0
 materials/extract_path=""
-_subresources={
-"nodes": {
-"PATH:Body": {
-"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
-},
-"PATH:Body/Head": {
-"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
-},
-"PATH:Body/Left Leg": {
-"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
-},
-"PATH:Body/Left Wing": {
-"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
-},
-"PATH:Body/Right Leg": {
-"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
-},
-"PATH:Body/Right Wing": {
-"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
-},
-"PATH:Body/Tail": {
-"node/script": Resource("uid://b0qrfki0qeitq", "res://src/Things/Parts/Part.cs")
-}
-}
-}
+_subresources={}
 gltf/naming_version=2
 gltf/embedded_image_handling=1

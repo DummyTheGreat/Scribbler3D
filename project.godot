@@ -11,6 +11,7 @@ config_version=5
 [application]
 
 config/name="Scribbler3D"
+run/main_scene="uid://ys0ss3d6jews"
 config/features=PackedStringArray("4.5", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
