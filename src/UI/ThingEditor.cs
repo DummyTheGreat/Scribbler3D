@@ -25,6 +25,7 @@ public partial class ThingEditor : Control {
 
         foreach (Part part in thing.parts) {
             Print(part.Name);
+            part.CreateTrimeshCollision();
             part.ToggleEditorMode();
             part.PartSelected += PartSelected;
         }

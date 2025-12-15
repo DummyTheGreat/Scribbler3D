@@ -50,6 +50,17 @@ public partial class Part : MeshInstance3D {
         }
     }
 
+    public void Selected() {
+        foreach (Node node in this.GetChildren()) {
+            if (node is PartCollider collider) {
+                collider.ToggleAreaDetection(true);
+            }
+
+            this.activeCollider?.ToggleLinkVisibility(true);
+            //EmitSignal(SignalName.PartSelected, this, this.GetIndex());
+        }
+    }
+
     public void JoiningInitialization() {
         // Set part to recive this part as recieving a join
         //this.activeCollider.GetBoundCollider().GetAssociatedPart().recieving = true;
@@ -134,45 +145,20 @@ public partial class Part : MeshInstance3D {
         this.siblingIndex = this.GetIndex();
     }
 
-    public override void _Input(InputEvent @event) {
-        //if (!this.editorMode || this.joining || this.recieving) return;
+    //public override void _Input(InputEvent @event) {
 
-        //if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouse) {
-        //    Camera3D camera = GetViewport().GetCamera3D();
-        //    if (camera == null) return;
+    //    if (@event is InputEventMouseMotion motion) {
+    //        this.GlobalPosition += (-camera.GlobalTransform.Basis.X * motion.Relative.X +
+    //            camera.GlobalTransform.Basis.Y * motion.Relative.Y) * PanSensitivity;
+    //    }
 
-        //    Vector3 origin = camera.ProjectRayOrigin(mouse.GlobalPosition);
-        //    Vector3 direction = camera.ProjectRayNormal(mouse.GlobalPosition);
-        //    Vector3 end = origin + direction * 1000f;
-
-        //    PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(origin, end);
-        //    query.CollideWithAreas = true;
-        //    query.CollideWithBodies = true;
-
-        //    Godot.Collections.Dictionary collisions = GetWorld3D().DirectSpaceState.IntersectRay(query);
-
-        //    if (collisions.Count == 0) return;
-
-        //    Print(collisions["collider"]);
-
-        //}
-
-        //    this.dragOffset = mouse.GlobalPosition - this.GlobalPosition;
-        //    foreach (Node node in this.GetChildren()) {
-        //        if (node is PartCollider collider) {
-        //            collider.ToggleAreaDetection(true);
-        //        }
-        //    }
-        //    this.activeCollider?.ToggleLinkVisibility(true);
-        //    EmitSignal(SignalName.PartSelected, this, this.GetIndex());
-        //}
-        //else if (this.dragging && @event is InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }) {
-        //    CancelClick();
-        //}
-        //else if (this.dragging && @event is InputEventMouseMotion motion) {
-        //    this.GlobalPosition = motion.Position - this.dragOffset;
-        //}
-    }
+    //    if (this.dragging && @event is InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }) {
+    //        CancelClick();
+    //    }
+    //    else if (this.dragging && @event is InputEventMouseMotion motion) {
+    //            this.GlobalPosition = motion.Position - this.dragOffset;
+    //    }
+    //}
 
     public override void _Process(double delta) {
         //if (this.editorMode) {

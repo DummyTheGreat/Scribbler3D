@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using static Godot.GD;
 
-public partial class ThingAssembler : Node3D
+public partial class EditorController : Node3D
 {
     public float LookSensitivity = 0.0025f;
     public float PanSensitivity = 0.01f;
@@ -21,6 +21,7 @@ public partial class ThingAssembler : Node3D
     private float zoomAxis;
 
     public override void _Input(InputEvent @event) {
+
         if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Right } right) {
             allowRotate = right.Pressed;
         }
@@ -37,17 +38,14 @@ public partial class ThingAssembler : Node3D
         if (@event is InputEventMouseButton { ButtonIndex: MouseButton.WheelDown }) {
             zoomAxis = Mathf.Clamp(zoomAxis + ZoomStep, MinZoom, MaxZoom);
             camera.Position = new Vector3(camera.Position.X, camera.Position.Y, zoomAxis);
-
         }
 
         if (@event is InputEventMouseMotion motion) {
 
             if (allowRotate) {
-
-                // Yaw — rotate controller in place
+                // Yaw
                 RotateY(-motion.Relative.X * LookSensitivity);
-
-                // Pitch — rotate pivot only
+                // Pitch
                 float pitch = pivot.Rotation.X;
                 pitch -= motion.Relative.Y * LookSensitivity;
                 pitch = Mathf.Clamp(
@@ -55,7 +53,6 @@ public partial class ThingAssembler : Node3D
                     Mathf.DegToRad(MinPitch),
                     Mathf.DegToRad(MaxPitch)
                 );
-
                 pivot.Rotation = new Vector3(pitch, 0f, 0f);
             }
 

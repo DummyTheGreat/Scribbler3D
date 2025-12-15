@@ -1,13 +1,13 @@
-[gd_scene load_steps=5 format=3 uid="uid://ys0ss3d6jews"]
+[gd_scene load_steps=6 format=3 uid="uid://ys0ss3d6jews"]
 
 [ext_resource type="Script" uid="uid://j4nm7xo383fn" path="res://src/UI/ThingEditor.cs" id="1_nky41"]
 [ext_resource type="Texture2D" uid="uid://thinqup0r1ei" path="res://icon.svg" id="1_nx73a"]
-[ext_resource type="Script" uid="uid://d4mamlv8ii6yx" path="res://src/UI/ThingAssembler.cs" id="3_caupk"]
+[ext_resource type="Script" uid="uid://chg38uuli87a6" path="res://src/UI/ThingEditorSpace.cs" id="3_0355r"]
+[ext_resource type="Script" uid="uid://d4mamlv8ii6yx" path="res://src/UI/EditorController.cs" id="3_caupk"]
 
 [sub_resource type="Environment" id="Environment_nky41"]
 ambient_light_source = 2
 ambient_light_color = Color(0.6872149, 0.68721503, 0.6872149, 1)
-ambient_light_energy = 0.8
 
 [node name="ThingEditor" type="Control"]
 layout_mode = 3
@@ -48,6 +48,7 @@ size = Vector2i(921, 648)
 render_target_update_mode = 4
 
 [node name="Things" type="Node3D" parent="Editor Window/3DWindow"]
+script = ExtResource("3_0355r")
 
 [node name="Controller" type="Node3D" parent="Editor Window/3DWindow/Things"]
 script = ExtResource("3_caupk")
