@@ -18,18 +18,15 @@ public partial class ThingEditor : Control {
     **/
     private void ThingSelected(long index, bool selected) {
         Thing thing = Load<PackedScene>("src/Things/" + things.GetItemText((int)index) + ".tscn").Instantiate<Thing>();
-        Print(thing.Name);
         worldRoot.AddChild(thing);
 
         partsForEdit.AddRange(thing.parts);
 
         foreach (Part part in thing.parts) {
-            Print(part.Name);
             part.CreateTrimeshCollision();
             part.ToggleEditorMode();
             part.PartSelected += PartSelected;
         }
-        PrintTreePretty();
     }
 
 

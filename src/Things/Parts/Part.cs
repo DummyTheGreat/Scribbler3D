@@ -7,7 +7,7 @@ public partial class Part : MeshInstance3D {
 
     public int siblingIndex;
 
-    private List<MeshInstance3D> bindingPoints;
+    private List<MeshInstance3D> bindingQuads;
     private bool editorMode;
     private bool dragging;
     private Vector3 dragOffset;
@@ -100,41 +100,53 @@ public partial class Part : MeshInstance3D {
     }
 
     private void EstablishColliders() {
-        for (int i = 0; i < this.bindingPoints.Count - 1; i++) {
+        foreach (MeshInstance3D quad in this.bindingQuads) {
+            Print(this.Name, this.bindingQuads.Count);
+            Vector3[] vertices = (Vector3[])quad.Mesh.SurfaceGetArrays(0)[(int)Mesh.ArrayType.Vertex];
+            Vector3[] normals = (Vector3[])quad.Mesh.SurfaceGetArrays(0)[(int)Mesh.ArrayType.Normal];
+            Vector3[] globalVertices = new Vector3[vertices.Length];
+            Vector3[] globalNormals = new Vector3[normals.Length];
 
-            Print(this.bindingPoints[i].Mesh.SurfaceGetArrays(0));
+            // Convert to global transform and find front vertex based on X value
+            Vector3 frontVertex = Vector3.Zero;
+            float lowestX = float.MaxValue;
+            for (int i = 0; i < vertices.Length; i++) {
+                globalVertices[i] = vertices[i] * quad.GlobalTransform;
+                if (globalVertices[i].X < lowestX) { 
+                    lowestX = globalVertices[i].X;
+                    frontVertex = globalVertices[i];
+                }
+                globalNormals[i] = (normals[i] * quad.GlobalTransform.Basis).Normalized();
+            }
 
-            //PartCollider partCollider = colliderScene.Instantiate<PartCollider>();
-            //this.AddChild(partCollider);
+            PartCollider partCollider = colliderScene.Instantiate<PartCollider>();
+            this.AddChild(partCollider);
+            // For now just choose the first normal since they're all the same
+            Vector3 planeNormal = globalNormals[0];
+            // Center of plane
+            Vector3 sum = Vector3.Zero; foreach (Vector3 v in globalVertices) { sum += v; }
+            Vector3 centroid = sum / globalVertices.Length;
+            Vector3 VertexToCenter = centroid - globalVertices[0];
 
-            //Vector2 vec = line.Item2 - line.Item1;
-            //Vector2 perpNormal = new Vector2(-vec.Y, vec.X).Normalized();
-            //Vector2 midpoint = (line.Item2 + line.Item1) * 0.5f;
+            // Set collider up based on the boundary line's endpoint coordinates
+            partCollider.Position = centroid;
+            partCollider.SetDiameter(2 * VertexToCenter.Length());
 
-            //// Set collider up based on the boundary line's endpoint coordinates
-            //partCollider.Position = midpoint;
-            //partCollider.Rotate(vec.Angle());
-            //partCollider.SetDiameter(vec.Length());
-            ////vec.Rotated()
-            //RectangleShape2D box = new() { Size = new Vector2(vec.Length(), 30f) };
-            //CircleShape2D circle = new() { Radius = vec.Length() * 0.5f };
-            //partCollider.GetChild<CollisionShape2D>(0).Shape = circle;
+            // Rotate to align with normal of binding quad
+            Quaternion quat = new(partCollider.GlobalTransform.Basis.Y.Normalized(), planeNormal);
+            partCollider.GlobalTransform = new Transform3D(new Basis(quat) * partCollider.GlobalTransform.Basis, partCollider.GlobalTransform.Origin);
 
-            //partCollider.PartConnect += PartConnect;
-            //partCollider.PartDisconnect += PartDisconnect;
+            SphereShape3D circle = new() { Radius = VertexToCenter.Length() };
+            partCollider.GetChild<CollisionShape3D>(0).Shape = circle;
 
-            //// Basically iterate forwards only once if the current line is continuing otherwise iterate forward twice
-            //if (i + 1 < this.bindingPoints.Count - 1 &&
-            //    (this.bindingPoints[i + 1].Name.ToString()[0] == this.bindingPoints[i + 2].Name.ToString()[0])) {
-            //    i--;
-            //}
-            //i++;
+            partCollider.PartConnect += PartConnect;
+            partCollider.PartDisconnect += PartDisconnect;
         }
     }
 
     public override void _Ready() {
 
-        this.bindingPoints = [.. this.GetChildren().Where(x => x.GetType() == typeof(MeshInstance3D)).ToList().Cast<MeshInstance3D>()];
+        this.bindingQuads = [.. this.GetChildren().Where(x => x.GetType() == typeof(MeshInstance3D)).ToList().Cast<MeshInstance3D>()];
         this.editorMode = false;
         this.dragging = false;
         this.joining = false;
