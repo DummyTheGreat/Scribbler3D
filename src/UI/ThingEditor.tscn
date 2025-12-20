@@ -59,7 +59,7 @@ script = ExtResource("3_caupk")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 9.032)
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="Editor Window/3DWindow/Things"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 30.240768, 0)
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 19.670753, 0)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="Editor Window/3DWindow"]
 environment = SubResource("Environment_nky41")

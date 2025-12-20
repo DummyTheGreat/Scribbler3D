@@ -17,31 +17,46 @@ public partial class PartCollider : Area3D {
     public delegate void PartDisconnectEventHandler();
 
     //private ColliderType colliderType;
+
+    public MeshInstance3D plane;
+
     private PartCollider boundCollider;
     private List<PartCollider> intersectingColliders;
     private MeshInstance3D link;
     private ImmediateMesh linkMesh;
-    private float diameter;
+    private Vector3 localNormal;
+    private Vector3[] vertices;
+    private int frontIndex;
 
-    public void SetDiameter(float d) {
-        diameter = d;
+    public void ComputeLocalNormalFromSurface(int surface) {
+        var arrays = this.plane.Mesh.SurfaceGetArrays(surface);
+        var verts = (Vector3[])arrays[(int)Mesh.ArrayType.Vertex];
+        var indices = (int[])arrays[(int)Mesh.ArrayType.Index];
+
+        // Take the first triangle
+        int i0 = indices[0];
+        int i1 = indices[1];
+        int i2 = indices[2];
+
+        this.localNormal = (verts[i1] - verts[i0]).Cross(verts[i2] - verts[i0]).Normalized();
     }
 
-    public float GetDiameter() {
-        return diameter;
+    public Vector3 EnsureNormalFacing(Vector3 referenceWorld) {
+        var normalMatrix = plane.GlobalTransform.Basis.Inverse().Transposed();
+        var world = (normalMatrix * this.localNormal).Normalized();
+        if (world.Dot(referenceWorld) < 0) this.localNormal = -this.localNormal;
+        return this.localNormal;
     }
 
-    public PartCollider GetBoundCollider() {
-        return this.boundCollider;
-    }
-
-    public void SetBoundCollider(PartCollider newBound) {
-        this.boundCollider = newBound;
-    }
-
-    public Part GetAssociatedPart() {
-        return this.GetParentOrNull<Part>();
-    }
+    public int GetFrontIndex() { return this.frontIndex; }
+    public void SetFrontIndex(int i) { this.frontIndex = i; }
+    public Vector3[] GetVertices() { return this.vertices; }
+    public void SetVertices(Vector3[] v) { this.vertices = v; }
+    public Vector3 GetLocalNormal() { return this.localNormal; }
+    public void SetLocalNormal(Vector3 v) { this.localNormal = v; }
+    public PartCollider GetBoundCollider() { return this.boundCollider; }
+    public void SetBoundCollider(PartCollider newBound) { this.boundCollider = newBound; }
+    public Part GetAssociatedPart() { return this.GetParentOrNull<Part>(); }
 
     public void ToggleLinkVisibility(bool enable) {
         this.link.Visible = enable;

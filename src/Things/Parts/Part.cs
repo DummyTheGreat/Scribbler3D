@@ -19,9 +19,25 @@ public partial class Part : MeshInstance3D {
     private Vector3 destPosition;
     private Vector3 destRotation;
     private Vector3 destScale;
+    private Transform3D destTransform;
 
     [Signal]
     public delegate void PartSelectedEventHandler(Part part, int index);
+
+    static Vector3 Centroid(Vector3[] v) {
+        Vector3 sum = Vector3.Zero;
+        foreach (var p in v) sum += p;
+        return sum / v.Length;
+    }
+
+    static Basis MakeRightHanded(Basis b) {
+        b = b.Orthonormalized();
+        if (b.Determinant() < 0f) {
+            // Flip one axis to remove the reflection (choose X by convention)
+            b.X = -b.X;
+        }
+        return b;
+    }
 
     public void ToggleEditorMode() {
         this.editorMode = !this.editorMode;
@@ -36,13 +52,13 @@ public partial class Part : MeshInstance3D {
         this.Reparent(newParent);
     }
 
-    public void CancelClick() {
+    public void Unselected() {
         foreach (Node node in this.GetChildren()) {
             if (node is PartCollider collider) {
                 collider.ToggleAreaDetection(false);
             }
         }
-        EmitSignal(SignalName.PartSelected, this, -1);
+        //EmitSignal(SignalName.PartSelected, this, -1);
         this.joining = this.activeCollider != null;
 
         if (this.joining) {
@@ -62,23 +78,77 @@ public partial class Part : MeshInstance3D {
     }
 
     public void JoiningInitialization() {
-        // Set part to recive this part as recieving a join
-        //this.activeCollider.GetBoundCollider().GetAssociatedPart().recieving = true;
 
-        // Rotational destination calc
-        //destRotation = (this.activeCollider.GetBoundCollider().GlobalRotation - this.activeCollider.Rotation) % (2 * Mathf.Pi);
-        //destRotation = destRotation < 0 ? destRotation + (2 * Mathf.Pi) : destRotation;
+        static Vector3 ProjectOntoPlane(Vector3 v, Vector3 n) => v - n * n.Dot(v);
 
-        // Scale destination calc
-        //float scaleRatio = this.activeCollider.GetBoundCollider().GetDiameter() / this.activeCollider.GetDiameter();
-        //destScale = this.Scale * scaleRatio;
-        //this.activeCollider.SetDiameter(this.activeCollider.GetDiameter() * scaleRatio);
+        PartCollider connector = activeCollider;                 // Plane A collider
+        PartCollider receiver = activeCollider.GetBoundCollider(); // Plane B collider
 
-        // Simulate the rotation and scaling on the part beforehand in order to accurately determine its positional destination
-        //Transform2D transformedPart = new(destRotation, destScale, this.Skew, this.GlobalTransform.Origin);
-        //Transform2D simulatedColliderTransform = transformedPart * this.activeCollider.Transform;
-        //Vector2 colliderOffset = this.GlobalPosition - simulatedColliderTransform.Origin;
-        //destPosition = this.activeCollider.GetBoundCollider().GlobalPosition + colliderOffset;
+        MeshInstance3D quadA = connector.plane; // connector plane A
+        MeshInstance3D quadB = receiver.plane;  // receiver plane B
+
+        // To be quite honest I'm not entirely sure what's going on here yet but eventually I will
+        Vector3[] bVertsL = receiver.GetVertices();
+        Vector3 bCenterW = quadB.GlobalTransform * Centroid(bVertsL);
+        Vector3 bFrontW = quadB.GlobalTransform * bVertsL[receiver.GetFrontIndex()];
+
+        // receiver plane B's global normal
+        Basis nmB = quadB.GlobalTransform.Basis.Inverse().Transposed();
+        Vector3 nB_W = (nmB * receiver.GetLocalNormal()).Normalized();
+
+        // The objective is for plane A to lay facing plane B so its normal (up basis) should face plane B's normal
+        Vector3 upTargetW = (-nB_W).Normalized();
+
+        // Define target twist using plane B's forward 
+        Vector3 fTargetW = ProjectOntoPlane(bFrontW - bCenterW, nB_W);
+        if (fTargetW.LengthSquared() < 1e-10f) fTargetW = Vector3.Right;
+        fTargetW = fTargetW.Normalized();
+        fTargetW = ProjectOntoPlane(fTargetW, upTargetW).Normalized();
+
+        Vector3 rTargetW = upTargetW.Cross(fTargetW).Normalized();
+        if (rTargetW.LengthSquared() < 1e-10f) {
+            fTargetW = ProjectOntoPlane(Vector3.Forward, upTargetW).Normalized();
+            rTargetW = upTargetW.Cross(fTargetW).Normalized();
+        }
+        fTargetW = rTargetW.Cross(upTargetW).Normalized();
+
+        Basis targetBasisW = new (rTargetW, upTargetW, fTargetW);
+
+        // Basically find the connecting part's local basis so that its inverse can be used to calculate the proper 
+        // rotational destination of the part
+        Vector3[] aVertsL = connector.GetVertices();
+        Vector3 aCenterL = Centroid(aVertsL);
+        Vector3 aFrontL = aVertsL[connector.GetFrontIndex()];
+
+        Vector3 upA_L = connector.GetLocalNormal().Normalized();
+
+        Vector3 fA_L = ProjectOntoPlane(aFrontL - aCenterL, upA_L);
+        if (fA_L.LengthSquared() < 1e-10f) fA_L = Vector3.Right;
+        fA_L = fA_L.Normalized();
+        fA_L = ProjectOntoPlane(fA_L, upA_L).Normalized();
+
+        Vector3 rA_L = upA_L.Cross(fA_L).Normalized();
+        if (rA_L.LengthSquared() < 1e-10f) {
+            fA_L = ProjectOntoPlane(Vector3.Forward, upA_L).Normalized();
+            rA_L = upA_L.Cross(fA_L).Normalized();
+        }
+        fA_L = rA_L.Cross(upA_L).Normalized();
+
+        Basis aLocalFrame = new (rA_L, upA_L, fA_L);
+
+        // Desired global basis for plane A
+        Basis desiredQuadABasisW = targetBasisW * aLocalFrame.Inverse();
+
+        // Matches front vertices and origins together for positional correctness
+        Vector3 desiredQuadAOriginW = bFrontW - (desiredQuadABasisW * aFrontL);
+
+        Transform3D desiredQuadAGlobal = new Transform3D(desiredQuadABasisW, desiredQuadAOriginW);
+
+        // Transform the Transform3D to be relative to this Part and not it's child quad so that this Part
+        // will transform properly
+        Transform3D solved = desiredQuadAGlobal * quadA.Transform.AffineInverse();
+        solved.Basis = MakeRightHanded(solved.Basis);
+        this.destTransform = solved;
     }
 
     // Signal function recieved from PartCollider
@@ -103,38 +173,62 @@ public partial class Part : MeshInstance3D {
         foreach (MeshInstance3D quad in this.bindingQuads) {
             Print(this.Name, this.bindingQuads.Count);
             Vector3[] vertices = (Vector3[])quad.Mesh.SurfaceGetArrays(0)[(int)Mesh.ArrayType.Vertex];
-            Vector3[] normals = (Vector3[])quad.Mesh.SurfaceGetArrays(0)[(int)Mesh.ArrayType.Normal];
             Vector3[] globalVertices = new Vector3[vertices.Length];
-            Vector3[] globalNormals = new Vector3[normals.Length];
+            for (int i = 0; i < vertices.Length; i++)
+                globalVertices[i] = quad.GlobalTransform * vertices[i];
 
-            // Convert to global transform and find front vertex based on X value
-            Vector3 frontVertex = Vector3.Zero;
             float lowestX = float.MaxValue;
-            for (int i = 0; i < vertices.Length; i++) {
-                globalVertices[i] = vertices[i] * quad.GlobalTransform;
-                if (globalVertices[i].X < lowestX) { 
+            int frontIndex = 0;
+
+            for (int i = 0; i < globalVertices.Length; i++) {
+                bool isTieX = Mathf.IsEqualApprox(globalVertices[i].X, lowestX);
+                if ((isTieX && globalVertices[i].Y > globalVertices[frontIndex].Y) ||
+                    (!isTieX && globalVertices[i].X < lowestX)) {
                     lowestX = globalVertices[i].X;
-                    frontVertex = globalVertices[i];
+                    frontIndex = i;
                 }
-                globalNormals[i] = (normals[i] * quad.GlobalTransform.Basis).Normalized();
             }
 
             PartCollider partCollider = colliderScene.Instantiate<PartCollider>();
             this.AddChild(partCollider);
-            // For now just choose the first normal since they're all the same
-            Vector3 planeNormal = globalNormals[0];
             // Center of plane
-            Vector3 sum = Vector3.Zero; foreach (Vector3 v in globalVertices) { sum += v; }
-            Vector3 centroid = sum / globalVertices.Length;
-            Vector3 VertexToCenter = centroid - globalVertices[0];
+            Vector3 centroidLocal = Centroid(vertices);
+            Vector3 VertexToCenter = centroidLocal - vertices[0];
+
+            partCollider.plane = quad;
 
             // Set collider up based on the boundary line's endpoint coordinates
-            partCollider.Position = centroid;
-            partCollider.SetDiameter(2 * VertexToCenter.Length());
+            partCollider.GlobalPosition = quad.GlobalTransform * centroidLocal;
+            partCollider.SetFrontIndex(frontIndex);
+            partCollider.SetVertices(vertices);
+
+            // Find the geometric normal of the plane formed by the vertices and convert to global space
+            partCollider.ComputeLocalNormalFromSurface(0);
+
+            // Find the direction from which the quad connector is located relative to the part to determine which way its normal should face
+            Vector3 quadCentroidWorld = quad.GlobalTransform * centroidLocal;
+            Vector3 partCenterWorld = this.GlobalTransform.Origin;
+            Vector3 outwardWorld = (quadCentroidWorld - partCenterWorld).Normalized();
+
+            // Get global normal of quad connector
+            Basis normalMatrix = quad.GlobalTransform.Basis.Inverse().Transposed();
+            Vector3 planeNormal = (normalMatrix * partCollider.GetLocalNormal()).Normalized();
+
+            // If normal points inward then flip the local normal
+            if (planeNormal.Dot(outwardWorld) < 0f) {
+                partCollider.SetLocalNormal(-partCollider.GetLocalNormal());
+                planeNormal = -planeNormal;
+            }
 
             // Rotate to align with normal of binding quad
-            Quaternion quat = new(partCollider.GlobalTransform.Basis.Y.Normalized(), planeNormal);
-            partCollider.GlobalTransform = new Transform3D(new Basis(quat) * partCollider.GlobalTransform.Basis, partCollider.GlobalTransform.Origin);
+            Vector3 forward = -GlobalTransform.Basis.Z;
+            if (Mathf.Abs(planeNormal.Dot(forward.Normalized())) > 0.99f) { forward = Vector3.Forward; }
+
+            Vector3 right = forward.Cross(planeNormal).Normalized();
+            Vector3 newForward = planeNormal.Cross(right).Normalized();
+            Basis b = new Basis(right, planeNormal, newForward);
+            b = MakeRightHanded(b);
+            partCollider.GlobalTransform = new Transform3D(b, partCollider.GlobalTransform.Origin);
 
             SphereShape3D circle = new() { Radius = VertexToCenter.Length() };
             partCollider.GetChild<CollisionShape3D>(0).Shape = circle;
@@ -157,43 +251,28 @@ public partial class Part : MeshInstance3D {
         this.siblingIndex = this.GetIndex();
     }
 
-    //public override void _Input(InputEvent @event) {
-
-    //    if (@event is InputEventMouseMotion motion) {
-    //        this.GlobalPosition += (-camera.GlobalTransform.Basis.X * motion.Relative.X +
-    //            camera.GlobalTransform.Basis.Y * motion.Relative.Y) * PanSensitivity;
-    //    }
-
-    //    if (this.dragging && @event is InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }) {
-    //        CancelClick();
-    //    }
-    //    else if (this.dragging && @event is InputEventMouseMotion motion) {
-    //            this.GlobalPosition = motion.Position - this.dragOffset;
-    //    }
-    //}
-
     public override void _Process(double delta) {
-        //if (this.editorMode) {
+        if (this.editorMode) {
 
-        //    if (this.activeCollider != null && this.joining) {
-        //        t += (float)delta * 0.5f;
-        //        //t = -(Math.Cos(Math.PI * t) - 1) / 2.0;
+            if (this.activeCollider != null && this.joining) {
+                t += (float)delta * 0.5f;
+                //t = -(Math.Cos(Math.PI * t) - 1) / 2.0;
 
-        //        this.GlobalPosition = this.GlobalPosition.Lerp(destPosition, t);
-        //        this.GlobalRotation = Mathf.LerpAngle(this.GlobalRotation, destRotation, t);
-        //        this.Scale = this.Scale.Lerp(this.destScale, t);
+                //this.GlobalPosition = this.GlobalPosition.Lerp(destPosition, t);
+                //this.GlobalRotation = this.GlobalRotation.Lerp(destRotation, t);
+                this.GlobalTransform = this.GlobalTransform.InterpolateWith(destTransform, t);
+                //this.Scale = this.Scale.Lerp(this.destScale, t);
 
-        //        float partRotationPosCompare = this.GlobalRotation < 0 ? this.GlobalRotation + (2 * Mathf.Pi) : this.GlobalRotation;
-        //        if (this.GlobalPosition.IsEqualApprox(destPosition) && Mathf.IsEqualApprox(partRotationPosCompare, destRotation)) {
-        //            Print("Sealed");
-        //            this.t = 0f;
-        //            this.joining = false;
-        //            this.Reparent(activeCollider.GetBoundCollider().GetAssociatedPart());
-        //            this.activeCollider.ToggleLinkVisibility(false);
-        //            this.activeCollider.GetBoundCollider().GetAssociatedPart().recieving = false;
+                if (this.GlobalTransform.IsEqualApprox(destTransform)) {
+                    Print("Sealed");
+                    this.t = 0f;
+                    this.joining = false;
+                    //this.Reparent(activeCollider.GetBoundCollider().GetAssociatedPart());
+                    //this.activeCollider.ToggleLinkVisibility(false);
+                    this.activeCollider.GetBoundCollider().GetAssociatedPart().recieving = false;
 
-        //        }
-        //    }
-        //}
+                }
+            }
+        }
     }
 }
