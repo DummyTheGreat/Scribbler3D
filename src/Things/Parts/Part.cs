@@ -20,6 +20,7 @@ public partial class Part : MeshInstance3D {
     private Vector3 destRotation;
     private Vector3 destScale;
     private Transform3D destTransform;
+    private Transform3D startTransform;
 
     [Signal]
     public delegate void PartSelectedEventHandler(Part part, int index);
@@ -31,12 +32,30 @@ public partial class Part : MeshInstance3D {
     }
 
     static Basis MakeRightHanded(Basis b) {
-        b = b.Orthonormalized();
+        //b = b.Orthonormalized();
         if (b.Determinant() < 0f) {
             // Flip one axis to remove the reflection (choose X by convention)
             b.X = -b.X;
         }
         return b;
+    }
+
+    static (float width, float height) ExtentsInFrame(Vector3[] verts, Vector3 center, Vector3 right, Vector3 forward) {
+        float minX = float.PositiveInfinity, maxX = float.NegativeInfinity;
+        float minZ = float.PositiveInfinity, maxZ = float.NegativeInfinity;
+
+        for (int i = 0; i < verts.Length; i++) {
+            Vector3 d = verts[i] - center;
+            float x = d.Dot(right);
+            float z = d.Dot(forward);
+
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (z < minZ) minZ = z;
+            if (z > maxZ) maxZ = z;
+        }
+
+        return (maxX - minX, maxZ - minZ);
     }
 
     public void ToggleEditorMode() {
@@ -81,11 +100,11 @@ public partial class Part : MeshInstance3D {
 
         static Vector3 ProjectOntoPlane(Vector3 v, Vector3 n) => v - n * n.Dot(v);
 
-        PartCollider connector = activeCollider;                 // Plane A collider
+        PartCollider connector = activeCollider; // Plane A collider
         PartCollider receiver = activeCollider.GetBoundCollider(); // Plane B collider
 
         MeshInstance3D quadA = connector.plane; // connector plane A
-        MeshInstance3D quadB = receiver.plane;  // receiver plane B
+        MeshInstance3D quadB = receiver.plane; // receiver plane B
 
         // To be quite honest I'm not entirely sure what's going on here yet but eventually I will
         Vector3[] bVertsL = receiver.GetVertices();
@@ -136,19 +155,51 @@ public partial class Part : MeshInstance3D {
 
         Basis aLocalFrame = new (rA_L, upA_L, fA_L);
 
+        var (wA, hA) = ExtentsInFrame(aVertsL, aCenterL, rA_L, fA_L);
+
+        Vector3 bCenterL = Centroid(bVertsL);
+        Vector3 bFrontL = bVertsL[receiver.GetFrontIndex()];
+
+        Vector3 upB_L = receiver.GetLocalNormal().Normalized();
+
+        // Forward-in-plane in quadB-local using center->front (same as you use for twist)
+        Vector3 fB_L = ProjectOntoPlane(bFrontL - bCenterL, upB_L);
+        if (fB_L.LengthSquared() < 1e-10f) fB_L = Vector3.Right;
+        fB_L = fB_L.Normalized();
+        fB_L = ProjectOntoPlane(fB_L, upB_L).Normalized();
+
+        Vector3 rB_L = upB_L.Cross(fB_L).Normalized();
+        if (rB_L.LengthSquared() < 1e-10f) {
+            fB_L = ProjectOntoPlane(Vector3.Forward, upB_L).Normalized();
+            rB_L = upB_L.Cross(fB_L).Normalized();
+        }
+        fB_L = rB_L.Cross(upB_L).Normalized();
+
+        var (wB, hB) = ExtentsInFrame(bVertsL, bCenterL, rB_L, fB_L);
+
+        float sx = (wA > 1e-8f) ? (wB / wA) : 1f;
+        float sz = (hA > 1e-8f) ? (hB / hA) : 1f;
+
+        // scale only in-plane axes of the *target frame*
+        Basis S = new (
+            new Vector3(sx, 0, 0),
+            new Vector3(0, 1, 0),
+            new Vector3(0, 0, sz)
+        );
+
         // Desired global basis for plane A
-        Basis desiredQuadABasisW = targetBasisW * aLocalFrame.Inverse();
+        Basis desiredQuadABasisW = targetBasisW * S * aLocalFrame.Inverse();
+        desiredQuadABasisW = MakeRightHanded(desiredQuadABasisW);
 
         // Matches front vertices and origins together for positional correctness
         Vector3 desiredQuadAOriginW = bFrontW - (desiredQuadABasisW * aFrontL);
-
-        Transform3D desiredQuadAGlobal = new Transform3D(desiredQuadABasisW, desiredQuadAOriginW);
+        Transform3D desiredQuadAGlobal = new (desiredQuadABasisW, desiredQuadAOriginW);
 
         // Transform the Transform3D to be relative to this Part and not it's child quad so that this Part
         // will transform properly
-        Transform3D solved = desiredQuadAGlobal * quadA.Transform.AffineInverse();
-        solved.Basis = MakeRightHanded(solved.Basis);
-        this.destTransform = solved;
+        this.startTransform = this.GlobalTransform;
+        this.destTransform = desiredQuadAGlobal * quadA.Transform.AffineInverse();
+        this.t = 0f;
     }
 
     // Signal function recieved from PartCollider
@@ -163,7 +214,7 @@ public partial class Part : MeshInstance3D {
     // Signal function recieved from PartCollider
     private void PartDisconnect() {
         this.activeCollider = null;
-        Node partsNode = this.FindParent("Parts");
+        Node partsNode = this.FindParent("Things");
         if (partsNode != this.GetParent()) {
             CallDeferred(nameof(DeferredReparenting), partsNode);
         }
@@ -255,20 +306,24 @@ public partial class Part : MeshInstance3D {
         if (this.editorMode) {
 
             if (this.activeCollider != null && this.joining) {
+                float diffy = 0.001f;
                 t += (float)delta * 0.5f;
                 //t = -(Math.Cos(Math.PI * t) - 1) / 2.0;
 
-                //this.GlobalPosition = this.GlobalPosition.Lerp(destPosition, t);
-                //this.GlobalRotation = this.GlobalRotation.Lerp(destRotation, t);
                 this.GlobalTransform = this.GlobalTransform.InterpolateWith(destTransform, t);
-                //this.Scale = this.Scale.Lerp(this.destScale, t);
 
-                if (this.GlobalTransform.IsEqualApprox(destTransform)) {
+                bool positionCheck = this.GlobalTransform.Origin.IsEqualApprox(destTransform.Origin);
+                Quaternion qa = this.GlobalTransform.Basis.GetRotationQuaternion();
+                Quaternion qb = destTransform.Basis.GetRotationQuaternion();
+                bool rotationCheck = qa.AngleTo(qb) <= diffy;
+                bool scaleCheck = this.GlobalTransform.Basis.Scale.IsEqualApprox(destTransform.Basis.Scale);
+
+                if (positionCheck && rotationCheck && scaleCheck) {
                     Print("Sealed");
                     this.t = 0f;
                     this.joining = false;
-                    //this.Reparent(activeCollider.GetBoundCollider().GetAssociatedPart());
-                    //this.activeCollider.ToggleLinkVisibility(false);
+                    this.Reparent(activeCollider.GetBoundCollider().GetAssociatedPart());
+                    this.activeCollider.ToggleLinkVisibility(false);
                     this.activeCollider.GetBoundCollider().GetAssociatedPart().recieving = false;
 
                 }

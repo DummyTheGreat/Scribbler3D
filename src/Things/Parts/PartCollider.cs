@@ -41,13 +41,6 @@ public partial class PartCollider : Area3D {
         this.localNormal = (verts[i1] - verts[i0]).Cross(verts[i2] - verts[i0]).Normalized();
     }
 
-    public Vector3 EnsureNormalFacing(Vector3 referenceWorld) {
-        var normalMatrix = plane.GlobalTransform.Basis.Inverse().Transposed();
-        var world = (normalMatrix * this.localNormal).Normalized();
-        if (world.Dot(referenceWorld) < 0) this.localNormal = -this.localNormal;
-        return this.localNormal;
-    }
-
     public int GetFrontIndex() { return this.frontIndex; }
     public void SetFrontIndex(int i) { this.frontIndex = i; }
     public Vector3[] GetVertices() { return this.vertices; }
