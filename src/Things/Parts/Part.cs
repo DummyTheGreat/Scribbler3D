@@ -10,15 +10,12 @@ public partial class Part : MeshInstance3D {
     private List<MeshInstance3D> bindingQuads;
     private bool editorMode;
     private bool dragging;
-    private Vector3 dragOffset;
     private PackedScene colliderScene;
     private PartCollider activeCollider;
     private float t;
     public bool joining;
+    public bool isSealed;
     private bool recieving;
-    private Vector3 destPosition;
-    private Vector3 destRotation;
-    private Vector3 destScale;
     private Transform3D destTransform;
     private Transform3D startTransform;
 
@@ -77,7 +74,6 @@ public partial class Part : MeshInstance3D {
                 collider.ToggleAreaDetection(false);
             }
         }
-        //EmitSignal(SignalName.PartSelected, this, -1);
         this.joining = this.activeCollider != null;
 
         if (this.joining) {
@@ -90,9 +86,8 @@ public partial class Part : MeshInstance3D {
             if (node is PartCollider collider) {
                 collider.ToggleAreaDetection(true);
             }
-
+            this.isSealed = false;
             this.activeCollider?.ToggleLinkVisibility(true);
-            //EmitSignal(SignalName.PartSelected, this, this.GetIndex());
         }
     }
 
@@ -296,10 +291,9 @@ public partial class Part : MeshInstance3D {
         this.dragging = false;
         this.joining = false;
         this.recieving = false;
-        this.dragOffset = Vector3.Zero;
         this.colliderScene = Load<PackedScene>("src/Things/Parts/PartCollider.tscn");
-        this.destScale = Vector3.One;
         this.siblingIndex = this.GetIndex();
+        this.isSealed = false;
     }
 
     public override void _Process(double delta) {
@@ -320,6 +314,11 @@ public partial class Part : MeshInstance3D {
 
                 if (positionCheck && rotationCheck && scaleCheck) {
                     Print("Sealed");
+                    this.isSealed = true;
+                    Print(this.Name);
+                    Print(this.GlobalPosition);
+                    Print(this.GlobalRotationDegrees);
+                    Print(this.Scale);
                     this.t = 0f;
                     this.joining = false;
                     this.Reparent(activeCollider.GetBoundCollider().GetAssociatedPart());

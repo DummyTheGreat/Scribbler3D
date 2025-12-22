@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3 uid="uid://ys0ss3d6jews"]
+[gd_scene load_steps=7 format=3 uid="uid://ys0ss3d6jews"]
 
 [ext_resource type="Script" uid="uid://j4nm7xo383fn" path="res://src/UI/ThingEditor.cs" id="1_nky41"]
 [ext_resource type="Texture2D" uid="uid://thinqup0r1ei" path="res://icon.svg" id="1_nx73a"]
+[ext_resource type="Script" uid="uid://dnqhv44te2mg8" path="res://src/UI/ExportModelTransformData.cs" id="3_2d61j"]
 [ext_resource type="Script" uid="uid://chg38uuli87a6" path="res://src/UI/ThingEditorSpace.cs" id="3_0355r"]
 [ext_resource type="Script" uid="uid://d4mamlv8ii6yx" path="res://src/UI/EditorController.cs" id="3_caupk"]
 
@@ -23,7 +24,7 @@ custom_minimum_size = Vector2(100, 0)
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 0.2
-anchor_bottom = 1.0
+anchor_bottom = 0.9
 grow_vertical = 2
 select_mode = 2
 auto_height = true
@@ -33,6 +34,15 @@ icon_mode = 0
 fixed_icon_size = Vector2i(100, 100)
 item_0/text = "Pigeon"
 item_0/icon = ExtResource("1_nx73a")
+
+[node name="Button" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 0.9
+anchor_right = 0.2
+anchor_bottom = 1.0
+text = "Export Model Transform"
+script = ExtResource("3_2d61j")
 
 [node name="Editor Window" type="SubViewportContainer" parent="."]
 layout_mode = 1

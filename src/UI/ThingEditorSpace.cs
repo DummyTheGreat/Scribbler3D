@@ -36,7 +36,7 @@ public partial class ThingEditorSpace : Node3D
             this.collidingPart.Selected();
         }
         else if (@event is InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }) {
-            this.collidingPart.Unselected();
+            this.collidingPart?.Unselected();
             this.collidingPart = null;
         }
 
