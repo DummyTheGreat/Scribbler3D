@@ -16,7 +16,6 @@ public partial class ExportModelTransformData : Button
     private List<Part> parts;
 
     public void AddParts(List<Part> p) {
-        GD.Print(p);
         this.parts.AddRange(p);
     }
     private void OnClick() {

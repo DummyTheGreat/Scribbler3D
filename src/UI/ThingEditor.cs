@@ -3,6 +3,7 @@ using static Godot.GD;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public partial class ThingEditor : Control {
     private ItemList things;
@@ -24,8 +25,14 @@ public partial class ThingEditor : Control {
         partsForEdit.AddRange(thing.parts);
         this.exportButton.AddParts(thing.parts);
 
+        MeshInstance3D mesh;
         foreach (Part part in thing.parts) {
-            part.CreateTrimeshCollision();
+            if (part is StaticPart) {
+                mesh = part.GetChildren().OfType<MeshInstance3D>().Where(x => !x.HasMeta("IsReceiver")).FirstOrDefault();
+            }
+            else {
+                mesh = part.GetChildren().OfType<Skeleton3D>().FirstOrDefault().GetChildren().OfType<MeshInstance3D>().FirstOrDefault();
+            }
             part.ToggleEditorMode();
         }
     }

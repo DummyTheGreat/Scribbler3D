@@ -20,6 +20,12 @@ public partial class EditorController : Node3D
     private bool allowRotate;
     private float zoomAxis;
 
+    public void ToggleInput(bool enable) {
+        SetProcessInput(enable);
+        this.allowRotate = false;
+        this.panning = false;
+    }
+
     public override void _Input(InputEvent @event) {
 
         if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Right } right) {

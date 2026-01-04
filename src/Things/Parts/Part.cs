@@ -3,24 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using static Godot.GD;
 
-public partial class Part : MeshInstance3D {
+public partial class Part : Node3D {
 
     public int siblingIndex;
+    public bool joining;
+    public List<MeshInstance3D> bindingQuads;
+    public PartCollider activeCollider;
+    public int depth;
 
-    private List<MeshInstance3D> bindingQuads;
     private bool editorMode;
     private bool dragging;
     private PackedScene colliderScene;
-    private PartCollider activeCollider;
     private float t;
-    public bool joining;
-    public bool isSealed;
     private bool recieving;
     private Transform3D destTransform;
     private Transform3D startTransform;
-
-    [Signal]
-    public delegate void PartSelectedEventHandler(Part part, int index);
 
     static Vector3 Centroid(Vector3[] v) {
         Vector3 sum = Vector3.Zero;
@@ -68,12 +65,7 @@ public partial class Part : MeshInstance3D {
         this.Reparent(newParent);
     }
 
-    public void Unselected() {
-        foreach (Node node in this.GetChildren()) {
-            if (node is PartCollider collider) {
-                collider.ToggleAreaDetection(false);
-            }
-        }
+    public virtual void Unselected() {
         this.joining = this.activeCollider != null;
 
         if (this.joining) {
@@ -81,15 +73,9 @@ public partial class Part : MeshInstance3D {
         }
     }
 
-    public void Selected() {
-        foreach (Node node in this.GetChildren()) {
-            if (node is PartCollider collider) {
-                collider.ToggleAreaDetection(true);
-            }
-            this.isSealed = false;
-            this.activeCollider?.ToggleLinkVisibility(true);
-        }
-    }
+    public virtual void Selected() { }
+
+    public virtual void AddPartCollider(PartCollider collider, MeshInstance3D quad) { }
 
     public void JoiningInitialization() {
 
@@ -101,7 +87,7 @@ public partial class Part : MeshInstance3D {
         MeshInstance3D quadA = connector.plane; // connector plane A
         MeshInstance3D quadB = receiver.plane; // receiver plane B
 
-        // To be quite honest I'm not entirely sure what's going on here yet but eventually I will
+        // Get B's basis vectors
         Vector3[] bVertsL = receiver.GetVertices();
         Vector3 bCenterW = quadB.GlobalTransform * Centroid(bVertsL);
         Vector3 bFrontW = quadB.GlobalTransform * bVertsL[receiver.GetFrontIndex()];
@@ -193,7 +179,8 @@ public partial class Part : MeshInstance3D {
         // Transform the Transform3D to be relative to this Part and not it's child quad so that this Part
         // will transform properly
         this.startTransform = this.GlobalTransform;
-        this.destTransform = desiredQuadAGlobal * quadA.Transform.AffineInverse();
+        Transform3D quadInPart = this.GlobalTransform.AffineInverse() * quadA.GlobalTransform; // <-- Remove for non-boned?
+        this.destTransform = desiredQuadAGlobal * quadInPart.AffineInverse();
         this.t = 0f;
     }
 
@@ -217,7 +204,6 @@ public partial class Part : MeshInstance3D {
 
     private void EstablishColliders() {
         foreach (MeshInstance3D quad in this.bindingQuads) {
-            Print(this.Name, this.bindingQuads.Count);
             Vector3[] vertices = (Vector3[])quad.Mesh.SurfaceGetArrays(0)[(int)Mesh.ArrayType.Vertex];
             Vector3[] globalVertices = new Vector3[vertices.Length];
             for (int i = 0; i < vertices.Length; i++)
@@ -236,7 +222,8 @@ public partial class Part : MeshInstance3D {
             }
 
             PartCollider partCollider = colliderScene.Instantiate<PartCollider>();
-            this.AddChild(partCollider);
+            partCollider.associatedPart = this;
+            this.AddPartCollider(partCollider, quad);
             // Center of plane
             Vector3 centroidLocal = Centroid(vertices);
             Vector3 VertexToCenter = centroidLocal - vertices[0];
@@ -272,7 +259,7 @@ public partial class Part : MeshInstance3D {
 
             Vector3 right = forward.Cross(planeNormal).Normalized();
             Vector3 newForward = planeNormal.Cross(right).Normalized();
-            Basis b = new Basis(right, planeNormal, newForward);
+            Basis b = new (right, planeNormal, newForward);
             b = MakeRightHanded(b);
             partCollider.GlobalTransform = new Transform3D(b, partCollider.GlobalTransform.Origin);
 
@@ -286,14 +273,17 @@ public partial class Part : MeshInstance3D {
 
     public override void _Ready() {
 
-        this.bindingQuads = [.. this.GetChildren().Where(x => x.GetType() == typeof(MeshInstance3D)).ToList().Cast<MeshInstance3D>()];
+        this.bindingQuads = [];
         this.editorMode = false;
         this.dragging = false;
         this.joining = false;
         this.recieving = false;
         this.colliderScene = Load<PackedScene>("src/Things/Parts/PartCollider.tscn");
         this.siblingIndex = this.GetIndex();
-        this.isSealed = false;
+
+        int count = 0; Node root = this;
+        while (root.GetParent() is Part) { count++; root = root.GetParent(); }
+        this.depth = count;
     }
 
     public override void _Process(double delta) {
@@ -301,29 +291,27 @@ public partial class Part : MeshInstance3D {
 
             if (this.activeCollider != null && this.joining) {
                 float diffy = 0.001f;
-                t += (float)delta * 0.5f;
-                //t = -(Math.Cos(Math.PI * t) - 1) / 2.0;
+                t += (float)delta * 10f;
+                t = Mathf.Clamp(t, 0f, 1f);
 
-                this.GlobalTransform = this.GlobalTransform.InterpolateWith(destTransform, t);
+                this.GlobalTransform = this.startTransform.InterpolateWith(destTransform, t);
 
-                bool positionCheck = this.GlobalTransform.Origin.IsEqualApprox(destTransform.Origin);
+                bool positionCheck = this.GlobalTransform.Origin.DistanceTo(destTransform.Origin) <= diffy;
                 Quaternion qa = this.GlobalTransform.Basis.GetRotationQuaternion();
                 Quaternion qb = destTransform.Basis.GetRotationQuaternion();
                 bool rotationCheck = qa.AngleTo(qb) <= diffy;
-                bool scaleCheck = this.GlobalTransform.Basis.Scale.IsEqualApprox(destTransform.Basis.Scale);
+                bool scaleCheck = this.GlobalTransform.Basis.Scale.DistanceTo(destTransform.Basis.Scale) <= diffy;
 
                 if (positionCheck && rotationCheck && scaleCheck) {
+                    // Temporary fix for interpolation not working
+                    this.GlobalTransform = this.destTransform;
+
                     Print("Sealed");
-                    this.isSealed = true;
-                    Print(this.Name);
-                    Print(this.GlobalPosition);
-                    Print(this.GlobalRotationDegrees);
-                    Print(this.Scale);
                     this.t = 0f;
                     this.joining = false;
-                    this.Reparent(activeCollider.GetBoundCollider().GetAssociatedPart());
+                    this.Reparent(activeCollider.GetBoundCollider().associatedPart);
                     this.activeCollider.ToggleLinkVisibility(false);
-                    this.activeCollider.GetBoundCollider().GetAssociatedPart().recieving = false;
+                    this.activeCollider.GetBoundCollider().associatedPart.recieving = false;
 
                 }
             }

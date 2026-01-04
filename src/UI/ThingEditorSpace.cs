@@ -8,10 +8,17 @@ public partial class ThingEditorSpace : Node3D
     private Camera3D camera;
     private Plane dragPlane;
     private Vector3 dragOffset;
+    private Transform3D startTransform;
     private Part collidingPart;
+    private MouseButton heldButton;
+    private EditorController controller;
+    private Vector2 mouseStart;
+    private float yaw;
+    private float pitch;
+    private Vector3 pivot;
+
     public override void _Input(InputEvent @event) {
-        //if (!this.editorMode || this.joining || this.recieving) return;
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mouse) {
+        if (@event is InputEventMouseButton { Pressed: true } mouse && (mouse.ButtonIndex == MouseButton.Left || mouse.ButtonIndex == MouseButton.Right)) {
             this.camera = GetViewport().GetCamera3D();
             if (this.camera == null) return;
 
@@ -26,32 +33,58 @@ public partial class ThingEditorSpace : Node3D
             Godot.Collections.Dictionary collisions = GetWorld3D().DirectSpaceState.IntersectRay(query);
             if (collisions.Count == 0) return;
 
-            this.collidingPart = (collisions["collider"].AsGodotObject() as Node).GetParentOrNull<Part>();
+            MeshInstance3D hit = (collisions["collider"].AsGodotObject() as Node).GetParentOrNull<MeshInstance3D>();
+            this.collidingPart = hit?.GetParentOrNull<Part>();
+
             if (this.collidingPart == null) return;
 
+            // Rotation
+            this.pivot = hit.GlobalTransform.Origin;
+            //this.startRotation = this.collidingPart.GlobalTransform;
+
+            // Position
             Vector3 clickPosition = (Vector3)collisions["position"];
             this.dragPlane = new Plane(this.camera.GlobalTransform.Basis.Z, clickPosition);
             this.dragOffset = this.collidingPart.GlobalPosition - clickPosition;
 
             this.collidingPart.Selected();
+            this.controller.ToggleInput(false);
+            this.heldButton = mouse.ButtonIndex;
+            Input.MouseMode = mouse.ButtonIndex == MouseButton.Right ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.ConfinedHidden;
         }
-        else if (@event is InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }) {
+        else if (@event is InputEventMouseButton { Pressed: false } endmouse && (endmouse.ButtonIndex == MouseButton.Left || endmouse.ButtonIndex == MouseButton.Right)) {
             this.collidingPart?.Unselected();
             this.collidingPart = null;
+            this.controller.ToggleInput(true);
+            Input.MouseMode = Input.MouseModeEnum.Visible;
         }
 
         if (@event is InputEventMouseMotion motion && this.collidingPart != null) {
-            Vector3 origin = this.camera.ProjectRayOrigin(motion.GlobalPosition);
-            Vector3 direction = this.camera.ProjectRayNormal(motion.GlobalPosition);
+            if (this.heldButton == MouseButton.None) return;
 
-            var point = dragPlane.IntersectsRay(origin, direction);
-            if (point == null) return;
+            if (this.heldButton == MouseButton.Left) {
+                Vector3 origin = this.camera.ProjectRayOrigin(motion.GlobalPosition);
+                Vector3 direction = this.camera.ProjectRayNormal(motion.GlobalPosition);
 
-            collidingPart.GlobalPosition = point.Value + dragOffset;
+                Vector3? point = dragPlane.IntersectsRay(origin, direction);
+                if (point == null) return;
+
+                collidingPart.GlobalPosition = point.Value + dragOffset;
+            }
+            else {
+                float speed = 0.02f;
+
+                this.yaw += -motion.Relative.X * speed;
+                this.pitch -= motion.Relative.Y * speed;
+
+                this.collidingPart.GlobalRotation = new Vector3(collidingPart.GlobalRotation.X, yaw, pitch);
+            }
         }
     }
 
     public override void _Ready() {
-        this.camera = this.GetChild<Node3D>(0).GetChild<Node3D>(0).GetChild<Camera3D>(0);
+        this.controller = this.GetChild<EditorController>(0);
+        this.camera = this.controller.GetChild<Node3D>(0).GetChild<Camera3D>(0);
+
     }
 }

@@ -19,6 +19,7 @@ public partial class PartCollider : Area3D {
     //private ColliderType colliderType;
 
     public MeshInstance3D plane;
+    public Part associatedPart;
 
     private PartCollider boundCollider;
     private List<PartCollider> intersectingColliders;
@@ -27,6 +28,7 @@ public partial class PartCollider : Area3D {
     private Vector3 localNormal;
     private Vector3[] vertices;
     private int frontIndex;
+
 
     public void ComputeLocalNormalFromSurface(int surface) {
         var arrays = this.plane.Mesh.SurfaceGetArrays(surface);
@@ -49,7 +51,6 @@ public partial class PartCollider : Area3D {
     public void SetLocalNormal(Vector3 v) { this.localNormal = v; }
     public PartCollider GetBoundCollider() { return this.boundCollider; }
     public void SetBoundCollider(PartCollider newBound) { this.boundCollider = newBound; }
-    public Part GetAssociatedPart() { return this.GetParentOrNull<Part>(); }
 
     public void ToggleLinkVisibility(bool enable) {
         this.link.Visible = enable;
@@ -94,7 +95,8 @@ public partial class PartCollider : Area3D {
 
     public override void _Ready() {
         this.link = new MeshInstance3D {
-            Visible = false
+            Visible = false,
+            Name = "Link"
         };
         linkMesh = new ImmediateMesh();
         this.link.Mesh = linkMesh;
@@ -107,11 +109,8 @@ public partial class PartCollider : Area3D {
 
         this.intersectingColliders = [];
 
-        int depth = 0; Node root = this;
-        while (root.GetParent() is Part) { depth++; root = root.GetParent(); }
-
-        this.CollisionLayer = (uint)(Math.Pow(2, depth));
-        this.CollisionMask = (uint)(depth > 1 ? Math.Pow(2, depth - 1) : 0);
+        this.CollisionLayer = (uint)(Math.Pow(2, this.associatedPart.depth));
+        this.CollisionMask = (uint)(this.associatedPart.depth > 0 ? Math.Pow(2, this.associatedPart.depth - 1) : 0);
 
         if (this.CollisionMask != 0) {
             this.AreaEntered += InitFirstContact;
