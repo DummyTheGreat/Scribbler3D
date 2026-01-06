@@ -12,6 +12,7 @@ public partial class PostImportThing : EditorScenePostImport
         Script thingScript = GD.Load<Script>("src/Things/Thing.cs");
         Script staticPartScript = GD.Load<Script>("src/Things/Parts/StaticPart.cs");
         Script deformingPartScript = GD.Load<Script>("src/Things/Parts/DeformingPart.cs");
+        Script alignmentPlaneScript = GD.Load<Script>("src/Things/Parts/AlignmentPlane.cs");
 
         if ((Script)scene.GetScript() == null) { scene.SetScript(thingScript); }
 
@@ -55,6 +56,15 @@ public partial class PostImportThing : EditorScenePostImport
 
                 if (child is Skeleton3D skeleton) {
                     partSkeleton = skeleton;
+
+                    foreach (BoneAttachment3D bone in skeleton.GetChildren().Where(x => x is BoneAttachment3D).Cast<BoneAttachment3D>()) {
+                        MeshInstance3D alignmentPlane = bone.GetChild<MeshInstance3D>(0);
+                        if ((Script)alignmentPlane.GetScript() == null && 
+                            (alignmentPlane.Name.ToString().EndsWith("Connector") || alignmentPlane.Name.ToString().EndsWith("Receiver"))) {
+                            alignmentPlane.SetScript(alignmentPlaneScript);
+                            alignmentPlane.Hide();
+                        }
+                    }
                 }
 
                 if (child.GetType() == typeof(Node3D)) {
@@ -73,7 +83,7 @@ public partial class PostImportThing : EditorScenePostImport
                 partBounds.Position = Vector3.Zero;
                 partSkeleton.Position -= part.Position;
 
-                //Get parent transform
+                //Get parent position and apply it as inverse position to part
                 Node3D parent = part.GetParent<Node3D>();
                 if (parent.Name.ToString().EndsWith("Armature")) {
                     part.Position -= parent.Position;

@@ -20,7 +20,7 @@ public partial class StaticPart : Part
 {
     public override void _Ready() {
         base._Ready();
-        this.bindingQuads = [.. this.GetChildren().Where(x => x is MeshInstance3D mesh && mesh.HasMeta("IsReceiver")).Cast<MeshInstance3D>().ToList()];
+        this.bindingQuads = [.. this.GetChildren().Where(x => x is AlignmentPlane mesh && mesh.HasMeta("IsReceiver")).Cast<AlignmentPlane>().ToList()];
     }
 
     public override void Unselected() {

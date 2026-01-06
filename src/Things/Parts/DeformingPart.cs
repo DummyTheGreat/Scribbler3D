@@ -25,7 +25,7 @@ public partial class DeformingPart : Part {
         base._Ready();
         this.skeleton = this.GetChildren().OfType<Skeleton3D>().FirstOrDefault();
         this.bindingQuads = [.. 
-            this.skeleton.GetChildren().OfType<BoneAttachment3D>().SelectMany(x => x.GetChildren()).Cast<MeshInstance3D>()
+            this.skeleton.GetChildren().OfType<BoneAttachment3D>().SelectMany(x => x.GetChildren()).Cast<AlignmentPlane>()
             ];
     }
 
