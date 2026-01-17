@@ -58,6 +58,9 @@ public partial class PostImportThing : EditorScenePostImport
                     partSkeleton = skeleton;
 
                     foreach (BoneAttachment3D bone in skeleton.GetChildren().Where(x => x is BoneAttachment3D).Cast<BoneAttachment3D>()) {
+                        bone.UseExternalSkeleton = true;
+                        bone.ExternalSkeleton = bone.GetPathTo(skeleton);
+
                         MeshInstance3D alignmentPlane = bone.GetChild<MeshInstance3D>(0);
                         if ((Script)alignmentPlane.GetScript() == null && 
                             (alignmentPlane.Name.ToString().EndsWith("Connector") || alignmentPlane.Name.ToString().EndsWith("Receiver"))) {

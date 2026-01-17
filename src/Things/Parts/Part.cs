@@ -7,6 +7,7 @@ public partial class Part : Node3D {
 
     public int siblingIndex;
     public bool joining;
+    public bool receiving;
     public List<AlignmentPlane> bindingQuads;
     public PartCollider activeCollider;
     public int depth;
@@ -15,7 +16,6 @@ public partial class Part : Node3D {
     private bool dragging;
     private PackedScene colliderScene;
     private float t;
-    private bool recieving;
     private Transform3D destTransform;
     private Transform3D startTransform;
 
@@ -42,10 +42,10 @@ public partial class Part : Node3D {
     }
 
     public virtual void Unselected() {
-        this.joining = this.activeCollider != null;
-
-        if (this.joining) {
+        if (this.activeCollider != null) {
             JoiningInitialization();
+            this.joining = true;
+            this.activeCollider.GetBoundCollider().associatedPart.receiving = true;
         }
     }
 
@@ -75,21 +75,9 @@ public partial class Part : Node3D {
 
         // The objective is for plane A to lay facing plane B so its normal (up basis) should face plane B's normal
         Vector3 upBWorld = (-normalBWorld).Normalized();
-
         // Target forward basis of receiving plane
         Vector3 forwardBWorld = ProjectOntoPlane(frontBWorld - centerBWorld, normalBWorld).Normalized();
-        //if (fTargetW.LengthSquared() < 1e-10f) fTargetW = Vector3.Right;
-        //fTargetW = fTargetW.Normalized();
-        //Print(forwardBWorld);
-        //forwardBWorld = ProjectOntoPlane(forwardBWorld, upBWorld).Normalized();
-        //Print(forwardBWorld);
-
         Vector3 rightBWorld = upBWorld.Cross(forwardBWorld).Normalized();
-        //if (rTargetW.LengthSquared() < 1e-10f) {
-        //    fTargetW = ProjectOntoPlane(Vector3.Forward, upTargetW).Normalized();
-        //    rTargetW = upTargetW.Cross(fTargetW).Normalized();
-        //}
-        //fTargetW = rTargetW.Cross(upTargetW).Normalized();
 
         Basis targetBasisW = new (rightBWorld, upBWorld, forwardBWorld);
 
@@ -127,6 +115,7 @@ public partial class Part : Node3D {
         if (init) {
             this.JoiningInitialization();
             this.joining = true;
+            this.activeCollider.GetBoundCollider().associatedPart.receiving = true;
         }
     }
 
@@ -184,13 +173,25 @@ public partial class Part : Node3D {
         }
     }
 
+    public virtual void SealJoin(Transform3D finalTransform) {
+        // Temporary fix for interpolation not working
+        this.GlobalTransform = finalTransform;
+
+        Print("Sealed");
+        this.t = 0f;
+        this.joining = false;
+        this.Reparent(activeCollider.GetBoundCollider().associatedPart);
+        this.activeCollider.ToggleLinkVisibility(false);
+        this.activeCollider.GetBoundCollider().associatedPart.receiving = false;
+    }
+
     public override void _Ready() {
 
         this.bindingQuads = [];
         this.editorMode = false;
         this.dragging = false;
         this.joining = false;
-        this.recieving = false;
+        this.receiving = false;
         this.colliderScene = Load<PackedScene>("src/Things/Parts/PartCollider.tscn");
         this.siblingIndex = this.GetIndex();
 
@@ -216,16 +217,7 @@ public partial class Part : Node3D {
                 bool scaleCheck = this.GlobalTransform.Basis.Scale.DistanceTo(destTransform.Basis.Scale) <= diffy;
 
                 if (positionCheck && rotationCheck && scaleCheck) {
-                    // Temporary fix for interpolation not working
-                    this.GlobalTransform = this.destTransform;
-
-                    Print("Sealed");
-                    this.t = 0f;
-                    this.joining = false;
-                    this.Reparent(activeCollider.GetBoundCollider().associatedPart);
-                    this.activeCollider.ToggleLinkVisibility(false);
-                    this.activeCollider.GetBoundCollider().associatedPart.recieving = false;
-
+                    SealJoin(this.destTransform);
                 }
             }
         }

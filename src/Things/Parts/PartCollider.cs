@@ -56,7 +56,7 @@ public partial class PartCollider : Area3D {
         this.AreaEntered -= InitFirstContact;
 
         if (this.intersectingColliders.Count > 0 && externalArea is PartCollider collider) {
-            this.AddChild(link);
+            this.AddChild(this.link);
             collider.SetBoundCollider(this);
             this.SetBoundCollider(collider);
             this.EmitSignal(SignalName.PartConnect, this, true);
@@ -68,12 +68,14 @@ public partial class PartCollider : Area3D {
         // Ensure that the intersecting area is a PartCollider and is not already bound to another collider
         if (externalArea is PartCollider collider && collider.GetBoundCollider() == null) {
             this.intersectingColliders.Add(collider);
+            Print("Overlap ", collider);
         }
     }
 
     private void HandleSeparation(Area3D externalArea) {
         if (externalArea is PartCollider collider && this.intersectingColliders.Contains(collider)) {
             this.intersectingColliders.Remove(collider);
+            Print("Separation ", collider);
         }
     }
 
