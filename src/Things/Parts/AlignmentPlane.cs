@@ -1,8 +1,7 @@
 using Godot;
 using System;
 
-public partial class AlignmentPlane : MeshInstance3D
-{
+public partial class AlignmentPlane : MeshInstance3D {
     private Vector3[] vertices;
     private int[] vertexIndices;
     private Vector3 localNormal;

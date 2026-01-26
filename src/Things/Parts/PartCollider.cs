@@ -99,6 +99,7 @@ public partial class PartCollider : Area3D {
         this.CollisionMask = (uint)(this.associatedPart.depth > 0 ? Math.Pow(2, this.associatedPart.depth - 1) : 0);
 
         if (this.CollisionMask != 0) {
+            Print("hello");
             this.AreaEntered += InitFirstContact;
         }
     }

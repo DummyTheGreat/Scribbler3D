@@ -5,27 +5,79 @@ using static Godot.GD;
 
 public partial class Part : Node3D {
 
-    public int siblingIndex;
+    [Export]
+    public NodePath parentPart;
+
     public bool joining;
     public bool receiving;
     public List<AlignmentPlane> bindingQuads;
     public PartCollider activeCollider;
     public int depth;
+    public bool editorMode;
 
-    private bool editorMode;
     private bool dragging;
     private PackedScene colliderScene;
     private float t;
     private Transform3D destTransform;
     private Transform3D startTransform;
 
-    static Basis MakeRightHanded(Basis b) {
+    private static Basis MakeRightHanded(Basis b) {
         //b = b.Orthonormalized();
         if (b.Determinant() < 0f) {
             // Flip one axis to remove the reflection (choose X by convention)
             b.X = -b.X;
         }
         return b;
+    }
+
+    public static Transform3D CalculateJoinTransform(AlignmentPlane connectingPlane, AlignmentPlane receivingPlane, Transform3D connectorGlobalPos) {
+        
+        static Vector3 ProjectOntoPlane(Vector3 v, Vector3 n) => v - n * n.Dot(v);
+
+        // Get the receiver's points of interest in global format
+        Vector3 centerBWorld = receivingPlane.GlobalTransform * receivingPlane.GetCentroid();
+        Vector3 frontBWorld = receivingPlane.GlobalTransform * receivingPlane.GetFront();
+
+        // receiver plane B's global normal
+        Basis nmB = receivingPlane.GlobalTransform.Basis.Inverse().Transposed();
+        Vector3 normalBWorld = (nmB * receivingPlane.GetLocalNormal()).Normalized();
+
+        // The objective is for plane A to lay facing plane B so its normal (up basis) should face plane B's normal
+        Vector3 upBWorld = (-normalBWorld).Normalized();
+        // Target forward basis of receiving plane
+        Vector3 forwardBWorld = ProjectOntoPlane(frontBWorld - centerBWorld, normalBWorld).Normalized();
+        Vector3 rightBWorld = upBWorld.Cross(forwardBWorld).Normalized();
+
+        Basis targetBasisW = new(rightBWorld, upBWorld, forwardBWorld);
+
+        Basis aLocalFrame = connectingPlane.GetLocalFrame();
+
+        float sx = (connectingPlane.GetDimensions().X > 1e-8f) ? (receivingPlane.GetDimensions().X / connectingPlane.GetDimensions().X) : 1f;
+        float sz = (connectingPlane.GetDimensions().Y > 1e-8f) ? (receivingPlane.GetDimensions().Y / connectingPlane.GetDimensions().Y) : 1f;
+
+        // scale only in-plane axes of the *target frame*
+        Basis S = new(
+            new Vector3(sx, 0, 0),
+            new Vector3(0, 1, 0),
+            new Vector3(0, 0, sz)
+        );
+
+        // Desired global basis for plane A
+        Basis desiredQuadABasisW = targetBasisW * S * aLocalFrame.Inverse();
+        //desiredQuadABasisW = MakeRightHanded(desiredQuadABasisW);
+
+        // Matches front vertices and origins together for positional correctness
+        Vector3 desiredQuadAOriginW = frontBWorld - (desiredQuadABasisW * connectingPlane.GetFront());
+        Transform3D desiredQuadAGlobal = new(desiredQuadABasisW, desiredQuadAOriginW);
+
+        // Transform the Transform3D to be relative to this Part and not it's child quad so that this Part
+        // will transform properly
+        Transform3D quadInPart = connectorGlobalPos.AffineInverse() * connectingPlane.GlobalTransform; // <-- Remove for static part?
+        return desiredQuadAGlobal * quadInPart.AffineInverse();
+    }
+
+    private Part GetParentPart() {
+        return GetNodeOrNull<Part>(this.parentPart);
     }
 
     public void ToggleEditorMode() {
@@ -53,84 +105,38 @@ public partial class Part : Node3D {
 
     public virtual void AddPartCollider(PartCollider collider, MeshInstance3D quad) { }
 
-    public void JoiningInitialization() {
+    public virtual void JoiningInitialization() {
 
-        static Vector3 ProjectOntoPlane(Vector3 v, Vector3 n) => v - n * n.Dot(v);
 
         PartCollider connector = activeCollider; // Plane A collider
         PartCollider receiver = activeCollider.GetBoundCollider(); // Plane B collider
 
-        AlignmentPlane quadA = connector.plane; // connector plane A
-        AlignmentPlane quadB = receiver.plane; // receiver plane B
-
-        // Get A's basis vectors
-
-        // Get the receiver's points of interest in global format
-        Vector3 centerBWorld = quadB.GlobalTransform * quadB.GetCentroid();
-        Vector3 frontBWorld = quadB.GlobalTransform * quadB.GetFront();
-
-        // receiver plane B's global normal
-        Basis nmB = quadB.GlobalTransform.Basis.Inverse().Transposed();
-        Vector3 normalBWorld = (nmB * quadB.GetLocalNormal()).Normalized();
-
-        // The objective is for plane A to lay facing plane B so its normal (up basis) should face plane B's normal
-        Vector3 upBWorld = (-normalBWorld).Normalized();
-        // Target forward basis of receiving plane
-        Vector3 forwardBWorld = ProjectOntoPlane(frontBWorld - centerBWorld, normalBWorld).Normalized();
-        Vector3 rightBWorld = upBWorld.Cross(forwardBWorld).Normalized();
-
-        Basis targetBasisW = new (rightBWorld, upBWorld, forwardBWorld);
-
-        Basis aLocalFrame = quadA.GetLocalFrame();
-
-        float sx = (quadA.GetDimensions().X > 1e-8f) ? (quadB.GetDimensions().X / quadA.GetDimensions().X) : 1f;
-        float sz = (quadA.GetDimensions().Y > 1e-8f) ? (quadB.GetDimensions().Y / quadA.GetDimensions().Y) : 1f;
-
-        // scale only in-plane axes of the *target frame*
-        Basis S = new (
-            new Vector3(sx, 0, 0),
-            new Vector3(0, 1, 0),
-            new Vector3(0, 0, sz)
-        );
-
-        // Desired global basis for plane A
-        Basis desiredQuadABasisW = targetBasisW * S * aLocalFrame.Inverse();
-        //desiredQuadABasisW = MakeRightHanded(desiredQuadABasisW);
-
-        // Matches front vertices and origins together for positional correctness
-        Vector3 desiredQuadAOriginW = frontBWorld - (desiredQuadABasisW * quadA.GetFront());
-        Transform3D desiredQuadAGlobal = new (desiredQuadABasisW, desiredQuadAOriginW);
-
-        // Transform the Transform3D to be relative to this Part and not it's child quad so that this Part
-        // will transform properly
+        this.destTransform = CalculateJoinTransform(connector.plane, receiver.plane, this.GlobalTransform);
         this.startTransform = this.GlobalTransform;
-        Transform3D quadInPart = this.GlobalTransform.AffineInverse() * quadA.GlobalTransform; // <-- Remove for static part?
-        this.destTransform = desiredQuadAGlobal * quadInPart.AffineInverse();
         this.t = 0f;
     }
 
     // Signal function recieved from PartCollider
     private void PartConnect(PartCollider newCollider, bool init) {
         this.activeCollider = newCollider;
-        if (init) {
-            this.JoiningInitialization();
-            this.joining = true;
-            this.activeCollider.GetBoundCollider().associatedPart.receiving = true;
-        }
+        //if (init) {
+        //    this.JoiningInitialization();
+        //    this.joining = true;
+        //    this.activeCollider.GetBoundCollider().associatedPart.receiving = true;
+        //}
     }
 
     // Signal function recieved from PartCollider
     private void PartDisconnect() {
         this.activeCollider = null;
-        Node partsNode = this.FindParent("Things");
-        if (partsNode != this.GetParent()) {
-            CallDeferred(nameof(DeferredReparenting), partsNode);
-        }
+        //Node partsNode = this.FindParent("Things");
+        //if (partsNode != this.GetParent()) {
+        //    CallDeferred(nameof(DeferredReparenting), partsNode);
+        //}
     }
 
     private void EstablishColliders() {
         foreach (AlignmentPlane quad in this.bindingQuads) {
-
             PartCollider partCollider = colliderScene.Instantiate<PartCollider>();
             partCollider.associatedPart = this;
             partCollider.SetPlane(quad);
@@ -173,14 +179,14 @@ public partial class Part : Node3D {
         }
     }
 
-    public virtual void SealJoin(Transform3D finalTransform) {
+    public virtual void SealJoin() {
         // Temporary fix for interpolation not working
-        this.GlobalTransform = finalTransform;
+        this.GlobalTransform = this.destTransform;
 
         Print("Sealed");
         this.t = 0f;
         this.joining = false;
-        this.Reparent(activeCollider.GetBoundCollider().associatedPart);
+        //this.Reparent(activeCollider.GetBoundCollider().associatedPart);
         this.activeCollider.ToggleLinkVisibility(false);
         this.activeCollider.GetBoundCollider().associatedPart.receiving = false;
     }
@@ -193,10 +199,9 @@ public partial class Part : Node3D {
         this.joining = false;
         this.receiving = false;
         this.colliderScene = Load<PackedScene>("src/Things/Parts/PartCollider.tscn");
-        this.siblingIndex = this.GetIndex();
 
-        int count = 0; Node root = this;
-        while (root.GetParent() is Part) { count++; root = root.GetParent(); }
+        int count = 0; Part root = this;
+        while (root.GetParentPart() is not null) { count++; root = root.GetParentPart(); }
         this.depth = count;
     }
 
@@ -217,7 +222,7 @@ public partial class Part : Node3D {
                 bool scaleCheck = this.GlobalTransform.Basis.Scale.DistanceTo(destTransform.Basis.Scale) <= diffy;
 
                 if (positionCheck && rotationCheck && scaleCheck) {
-                    SealJoin(this.destTransform);
+                    SealJoin();
                 }
             }
         }

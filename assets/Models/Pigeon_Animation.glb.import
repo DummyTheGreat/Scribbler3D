@@ -1,15 +1,15 @@
 [remap]
 
-importer="scene"
+importer="animation_library"
 importer_version=1
-type="PackedScene"
-uid="uid://cjbjomtt4ugxg"
-path="res://.godot/imported/Pigeon_proto.glb-08018562a8db3992da254274c2c67736.scn"
+type="AnimationLibrary"
+uid="uid://cqcv6r4dd1vlb"
+path="res://.godot/imported/Pigeon_Animation.glb-e87e1797e116d72134d61563b40504e8.res"
 
 [deps]
 
-source_file="res://assets/Models/Pigeon_proto.glb"
-dest_files=["res://.godot/imported/Pigeon_proto.glb-08018562a8db3992da254274c2c67736.scn"]
+source_file="res://assets/Models/Pigeon_Animation.glb"
+dest_files=["res://.godot/imported/Pigeon_Animation.glb-e87e1797e116d72134d61563b40504e8.res"]
 
 [params]
 
@@ -33,7 +33,7 @@ animation/fps=30
 animation/trimming=false
 animation/remove_immutable_tracks=true
 animation/import_rest_as_RESET=false
-import_script/path="uid://b2wbj2twu5xt6"
+import_script/path=""
 materials/extract=0
 materials/extract_format=0
 materials/extract_path=""

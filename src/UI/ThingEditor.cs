@@ -23,7 +23,7 @@ public partial class ThingEditor : Control {
         worldRoot.AddChild(thing);
 
         partsForEdit.AddRange(thing.parts);
-        this.exportButton.AddParts(thing.parts);
+        this.exportButton.AddParts([.. thing.parts]);
 
         MeshInstance3D mesh;
         foreach (Part part in thing.parts) {

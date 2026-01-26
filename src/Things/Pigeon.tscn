@@ -1,5 +1,30 @@
 [gd_scene load_steps=2 format=3 uid="uid://brmu2d6vxxne0"]
 
-[ext_resource type="PackedScene" uid="uid://cjbjomtt4ugxg" path="res://assets/Models/Pigeon_proto.glb" id="1_ryern"]
+[ext_resource type="PackedScene" uid="uid://bfeaki581wrmy" path="res://assets/Models/Pigeon_Model.glb" id="1_ryern"]
 
-[node name="Pigeon_proto" instance=ExtResource("1_ryern")]
+[node name="Pigeon_Model" node_paths=PackedStringArray("parts") instance=ExtResource("1_ryern")]
+parts = [NodePath("BodyArmature"), NodePath("BodyArmature/Skeleton3D/NeckSocket_Rec/HeadArmature"), NodePath("BodyArmature/Skeleton3D/WingSocket_Rec_R/WingRightArmature"), NodePath("BodyArmature/Skeleton3D/WingSocket_Rec_L/WingLeftArmature"), NodePath("BodyArmature/Skeleton3D/LowerSpineSocket_Rec/TailArmature"), NodePath("BodyArmature/Skeleton3D/LegSocket_Rec_L/LegLeftArmature"), NodePath("BodyArmature/Skeleton3D/LegSocket_Rec_R/LegRightArmature")]
+
+[node name="HeadArmature" parent="BodyArmature/Skeleton3D/NeckSocket_Rec" index="1"]
+transform = Transform3D(1, 4.5634792e-08, 2.0769814e-07, 1.7695095e-08, 1.0000002, -5.215407e-08, 3.0720457e-08, 2.2351756e-08, 1, 0.12249279, 0.6193085, 5.069762e-07)
+parentPart = NodePath("../../..")
+
+[node name="WingRightArmature" parent="BodyArmature/Skeleton3D/WingSocket_Rec_R" index="1"]
+transform = Transform3D(0.9999944, 0.00158003, -0.0029219184, -0.0015796415, 0.99999845, 0.00012351658, 0.002922111, -0.0001186809, 0.99999523, -1.5241954, -0.70909786, 0.46319705)
+parentPart = NodePath("../../..")
+
+[node name="WingLeftArmature" parent="BodyArmature/Skeleton3D/WingSocket_Rec_L" index="1"]
+transform = Transform3D(0.9999998, -0.0005606674, -3.9901613e-05, 0.00056078297, 0.99999994, 6.513112e-05, 3.9866107e-05, -6.531063e-05, 0.9999999, -1.5512085, -0.7131536, -0.45934838)
+parentPart = NodePath("../../..")
+
+[node name="TailArmature" parent="BodyArmature/Skeleton3D/LowerSpineSocket_Rec" index="1"]
+transform = Transform3D(1, 0.00031618777, 2.054071e-07, -0.00031606865, 1.0000002, -1.8146402e-08, -1.1602468e-07, 7.7714425e-08, 1.0000002, -2.2324317, -0.07249308, 1.4745366e-07)
+parentPart = NodePath("../../..")
+
+[node name="LegLeftArmature" parent="BodyArmature/Skeleton3D/LegSocket_Rec_L" index="1"]
+transform = Transform3D(0.99999964, -0.00062165596, -0.0004919655, 0.00062158715, 1.0000001, -0.00017960565, 0.00049204484, 0.00017945115, 1.0000015, 0.095627904, -0.6523272, -0.4704825)
+parentPart = NodePath("../../..")
+
+[node name="LegRightArmature" parent="BodyArmature/Skeleton3D/LegSocket_Rec_R" index="1"]
+transform = Transform3D(0.9999998, -0.0006216281, 0.0004916863, 0.0006216469, 0.9999999, 0.00017873016, -0.0004916714, -0.00017902265, 0.99999976, 0.09566462, -0.65233016, 0.47049442)
+parentPart = NodePath("../../..")
