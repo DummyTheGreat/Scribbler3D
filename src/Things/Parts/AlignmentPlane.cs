@@ -1,5 +1,7 @@
 using Godot;
+using static Godot.GD;
 using System;
+using System.Linq;
 
 public partial class AlignmentPlane : MeshInstance3D {
     private Vector3[] vertices;
@@ -7,6 +9,7 @@ public partial class AlignmentPlane : MeshInstance3D {
     private Vector3 localNormal;
     private Basis localFrame;
     private Vector3 centroid;
+    private Node3D frontMarker;
     private Vector3 front;
     private Vector2 dimensions;
 
@@ -29,19 +32,33 @@ public partial class AlignmentPlane : MeshInstance3D {
     }
 
     private int ComputeFrontmostIndex() {
+
         Vector3[] globalVertices = new Vector3[this.vertices.Length];
         for (int i = 0; i < this.vertices.Length; i++)
             globalVertices[i] = this.GlobalTransform * this.vertices[i];
-
-        float lowestX = float.MaxValue;
+        
         int frontIndex = 0;
+        if (this.frontMarker == null) {
 
-        for (int i = 0; i < globalVertices.Length; i++) {
-            bool isTieX = Mathf.IsEqualApprox(globalVertices[i].X, lowestX);
-            if ((isTieX && globalVertices[i].Y > globalVertices[frontIndex].Y) ||
-                (!isTieX && globalVertices[i].X < lowestX)) {
-                lowestX = globalVertices[i].X;
-                frontIndex = i;
+            float lowestX = float.MaxValue;
+
+            for (int i = 0; i < globalVertices.Length; i++) {
+                bool isTieX = Mathf.IsEqualApprox(globalVertices[i].X, lowestX);
+                if ((isTieX && globalVertices[i].Y > globalVertices[frontIndex].Y) ||
+                    (!isTieX && globalVertices[i].X < lowestX)) {
+                    lowestX = globalVertices[i].X;
+                    frontIndex = i;
+                }
+            }
+        }
+        else {
+            float minDist = float.MaxValue;
+            for (int i = 0; i < globalVertices.Length; i++) {
+                float calc = globalVertices[i].DistanceTo(this.frontMarker.GlobalPosition);
+                if (calc < minDist) {
+                    minDist = calc;
+                    frontIndex = i;
+                }
             }
         }
         return frontIndex;
@@ -104,6 +121,7 @@ public partial class AlignmentPlane : MeshInstance3D {
         Godot.Collections.Array arrays = this.Mesh.SurfaceGetArrays(0);
         this.vertices = (Vector3[])arrays[(int)Mesh.ArrayType.Vertex];
         this.vertexIndices = (int[])arrays[(int)Mesh.ArrayType.Index];
+        this.frontMarker = this.GetChildren().OfType<Node3D>().Where(x => x.Name.ToString().EndsWith("Front")).FirstOrDefault();
         ComputeLocalNormalFromSurface();
         ComputeLocalBasis();
         ComputeMaxDimensionExtents();

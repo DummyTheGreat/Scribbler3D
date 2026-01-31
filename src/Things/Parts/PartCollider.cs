@@ -28,6 +28,7 @@ public partial class PartCollider : Area3D {
     private ImmediateMesh linkMesh;
     private Vector3[] vertices;
     private int frontIndex;
+    private bool initPhase;
 
 
     public PartCollider GetBoundCollider() { return this.boundCollider; }
@@ -41,6 +42,12 @@ public partial class PartCollider : Area3D {
     }
 
     public void ToggleAreaDetection(bool enable) {
+        
+        if (initPhase) {
+            this.AreaEntered -= InitFirstContact;
+            initPhase = false;
+        }
+
         if (enable) {
             this.AreaEntered += HandleOverlap;
             this.AreaExited += HandleSeparation;
@@ -52,15 +59,17 @@ public partial class PartCollider : Area3D {
     }
 
     private void InitFirstContact(Area3D externalArea) {
-        HandleOverlap(externalArea);
-        this.AreaEntered -= InitFirstContact;
-
-        if (this.intersectingColliders.Count > 0 && externalArea is PartCollider collider) {
-            this.AddChild(this.link);
-            collider.SetBoundCollider(this);
-            this.SetBoundCollider(collider);
-            this.EmitSignal(SignalName.PartConnect, this, true);
+        if (externalArea is PartCollider collider && collider.GetBoundCollider() == null) {
+            this.intersectingColliders.Add(collider);
+            Print("Init Overlap", collider);
         }
+
+        //if (this.intersectingColliders.Count > 0 && externalArea is PartCollider col) {
+        //    this.AddChild(this.link);
+        //    col.SetBoundCollider(this);
+        //    this.SetBoundCollider(col);
+        //    this.EmitSignal(SignalName.PartConnect, this, true);
+        //}
 
     }
 
@@ -99,7 +108,7 @@ public partial class PartCollider : Area3D {
         this.CollisionMask = (uint)(this.associatedPart.depth > 0 ? Math.Pow(2, this.associatedPart.depth - 1) : 0);
 
         if (this.CollisionMask != 0) {
-            Print("hello");
+            initPhase = true;
             this.AreaEntered += InitFirstContact;
         }
     }

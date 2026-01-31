@@ -14,13 +14,21 @@ public partial class PostImportThing : EditorScenePostImport
     Script deformingPartScript;
     Script alignmentPlaneScript;
 
+    private void ValidateAndInitAlignmentPlane(MeshInstance3D mesh) {
+        if ((Script)mesh.GetScript() == null &&
+            (mesh.Name.ToString().EndsWith("Connector") || mesh.Name.ToString().EndsWith("Receiver"))) {
+            mesh.SetScript(this.alignmentPlaneScript);
+            mesh.Hide();
+        }
+    }
+
     private void ModifyNodeTree(Node3D part, Node parent, Node scene) {
         part.Owner = scene;
 
         if ((Script)part.GetScript() == null && part.Name.ToString().EndsWith("Armature")) {
             part.SetScript(this.deformingPartScript);
         }
-        else if ((Script)part.GetScript() == null && part.Name.ToString().EndsWith("Static")) {
+        else if ((Script)part.GetScript() == null && part.Name.ToString().EndsWith("Group")) {
             part.SetScript(this.staticPartScript);
         }
 
@@ -29,23 +37,27 @@ public partial class PostImportThing : EditorScenePostImport
 
         foreach (Node child in part.GetChildren()) {
 
-            if (child is MeshInstance3D mesh && mesh.Name.ToString().EndsWith("Bounds") && mesh.GetChildCount() == 0) {
-                partBounds = mesh;
-                Aabb local = mesh.Mesh.GetAabb();
+            if (child is MeshInstance3D mesh) {
+                if (mesh.Name.ToString().EndsWith("Bounds") && mesh.GetChildCount() == 0) {
+                    partBounds = mesh;
+                    Aabb local = mesh.Mesh.GetAabb();
 
-                //Vector3 meshSize = local * mesh.GlobalTransform;
+                    //Vector3 meshSize = local * mesh.GlobalTransform;
 
-                StaticBody3D a = new() { Name = "CollisionBody" };
-                BoxShape3D sh = new() { Size = local.Size };
-                CollisionShape3D col = new() { Name = "CollisionShape", Shape = sh };
+                    StaticBody3D a = new() { Name = "CollisionBody" };
+                    BoxShape3D sh = new() { Size = local.Size };
+                    CollisionShape3D col = new() { Name = "CollisionShape", Shape = sh };
 
-                a.AddChild(col);
-                mesh.AddChild(a);
+                    a.AddChild(col);
+                    mesh.AddChild(a);
 
-                a.Owner = scene;
-                col.Owner = scene;
+                    a.Owner = scene;
+                    col.Owner = scene;
 
-                mesh.Hide();
+                    mesh.Hide();
+                }
+                ValidateAndInitAlignmentPlane(mesh);
+
             }
 
             if (child is Skeleton3D skeleton) {
@@ -54,21 +66,10 @@ public partial class PostImportThing : EditorScenePostImport
                 foreach (BoneAttachment3D bone in skeleton.GetChildren().Where(x => x is BoneAttachment3D).Cast<BoneAttachment3D>()) {
 
                     MeshInstance3D alignmentPlane = bone.GetChild<MeshInstance3D>(0);
-                    if ((Script)alignmentPlane.GetScript() == null &&
-                        (alignmentPlane.Name.ToString().EndsWith("Connector") || alignmentPlane.Name.ToString().EndsWith("Receiver"))) {
-                        alignmentPlane.SetScript(this.alignmentPlaneScript);
-                        alignmentPlane.Hide();
-                    }
+                    ValidateAndInitAlignmentPlane(alignmentPlane);
                 }
             }
-
-            //if (child.GetType() == typeof(Node3D)) {
-
-            //    ModifyNodeTree((Node3D)child, part, scene);
-            //}
         }
-
-        // Transform Armature origin to bounds origin
 
         if (parent is Node3D partParent) {
             // Do part/bone connections
@@ -84,28 +85,27 @@ public partial class PostImportThing : EditorScenePostImport
                         break;
                     }
                 }
-                //part.Position += parentSkeleton.Position;
             }
-            else {
-                // Static parent
-            }
-        }
 
-        if (partBounds != null && partSkeleton != null) {
-            //Vector3 boundsOffset = partBounds.Transform.Origin;
-            //Transform3D tOffset = new (Basis.Identity, boundsOffset);
-            //Transform3D invTOffset = tOffset.AffineInverse();
+            if (partBounds != null) {
 
-            part.Position += partBounds.Position;
-            partBounds.Position = Vector3.Zero;
-            partSkeleton.Position -= part.Position;
+                part.Position += partBounds.Position;
+                partBounds.Position = Vector3.Zero;
+                if (partSkeleton != null) { partSkeleton.Position -= part.Position; }
+                else {
+                    foreach (Node3D c in part.GetChildren().OfType<Node3D>().Where(x => x != partBounds)) {
+                        c.Position -= part.Position;
+                    }
+                }
 
-            //Get parent position and apply it as inverse position to part
-            //Node3D p = part.GetParentOrNull<Node3D>();
-            if (parent is Node3D lalala && lalala.Name.ToString().EndsWith("Armature")) {
-                part.Position -= lalala.Position;
+                //Get parent position and apply it as inverse position to part
+                if (partParent.Name.ToString().EndsWith("Armature") || partParent.Name.ToString().EndsWith("Group")) {
+                    part.Position -= partParent.Position;
+                }
             }
         }
+
+
 
         // Recursion to child parts
         foreach (Node3D child in part.GetChildren().Where(x => x.GetType() == typeof(Node3D)).Cast<Node3D>().ToList()) {
@@ -119,39 +119,46 @@ public partial class PostImportThing : EditorScenePostImport
         // Add imported animations to model animation player and remove useless imported animations
         if (animationPlayer == null) {
 
-            animationPlayer = new() { Name = "AnimationPlayer" };
             string sceneName = scene.Name.ToString();
             string thingName = scene.Name.ToString()[..sceneName.FindN("_")];
             string libraryName = thingName + "_Animation";
-            AnimationLibrary library = GD.Load<AnimationLibrary>("assets/Models/" + libraryName + ".glb");
-            animationPlayer.AddAnimationLibrary(thingName + "Library", library);
 
-            Godot.Collections.Array<StringName> animationNames = library.GetAnimationList();
-            foreach (StringName animationName in animationNames) {
-                Animation a = animationPlayer.GetAnimation(thingName + "Library/" + animationName);
+            // If there is no associated library then there are no animations and thus there is no need for an animation player
+            if (ResourceLoader.Exists("res://assets/Models/" + libraryName + ".glb")) {
+                AnimationLibrary library = GD.Load<AnimationLibrary>("assets/Models/" + libraryName + ".glb");
+                animationPlayer = new() { Name = "AnimationPlayer" };
+                animationPlayer.AddAnimationLibrary(thingName + "Library", library);
 
-                int count = 0;
-                a.Optimize();
-                while (count < a.GetTrackCount()) {
-                    if (a.TrackGetKeyCount(count) <= 1) {
-                        a.RemoveTrack(count);
+                Godot.Collections.Array<StringName> animationNames = library.GetAnimationList();
+                foreach (StringName animationName in animationNames) {
+                    Animation a = animationPlayer.GetAnimation(thingName + "Library/" + animationName);
+
+                    int count = 0;
+                    a.Optimize();
+                    while (count < a.GetTrackCount()) {
+                        if (a.TrackGetKeyCount(count) <= 1) {
+                            a.RemoveTrack(count);
+                        }
+                        else {
+                            count++;
+                        }
                     }
-                    else {
-                        count++;
-                    }
+
+                    a.LoopMode = Animation.LoopModeEnum.Linear;
                 }
 
-                a.LoopMode = Animation.LoopModeEnum.Linear;
+                scene.AddChild(animationPlayer);
+                animationPlayer.Owner = scene;
+
+                // Animation tree
+                AnimationTree tree = new();
+                scene.AddChild(tree);
+                tree.Owner = scene;
             }
-
-            scene.AddChild(animationPlayer);
-            animationPlayer.Owner = scene;
+            else {
+                GD.Print("No Animation Library Found for model: ", scene.Name);
+            }
         }
-
-        // Animation tree
-        AnimationTree tree = new();
-        scene.AddChild(tree);
-        tree.Owner = scene;
     }
 
     public override GodotObject _PostImport(Node scene) {

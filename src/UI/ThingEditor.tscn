@@ -28,12 +28,14 @@ anchor_bottom = 0.9
 grow_vertical = 2
 select_mode = 2
 auto_height = true
-item_count = 1
+item_count = 2
 max_columns = 2
 icon_mode = 0
 fixed_icon_size = Vector2i(100, 100)
 item_0/text = "Pigeon"
 item_0/icon = ExtResource("1_nx73a")
+item_1/text = "Rocket"
+item_1/icon = ExtResource("1_nx73a")
 
 [node name="Button" type="Button" parent="."]
 layout_mode = 1
@@ -55,6 +57,7 @@ stretch = true
 [node name="3DWindow" type="SubViewport" parent="Editor Window"]
 handle_input_locally = false
 size = Vector2i(921, 648)
+render_target_update_mode = 4
 
 [node name="Things" type="Node3D" parent="Editor Window/3DWindow"]
 script = ExtResource("3_0355r")

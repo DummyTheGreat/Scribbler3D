@@ -7,6 +7,7 @@ var plane : MeshInstance3D
 var localNormal : Vector3
 var localFrame : Basis
 var centroid : Vector3
+var frontMarker : Node3D
 var front : Vector3
 var dimensions : Vector2
 
@@ -15,6 +16,9 @@ func _init(p : MeshInstance3D) -> void:
 	self.vertices = arrays[Mesh.ArrayType.ARRAY_VERTEX]
 	self.vertexIndices = arrays[Mesh.ArrayType.ARRAY_INDEX]
 	self.plane = p
+	var planeFront = p.get_children().filter(func(x: Node): return x.name.ends_with("Front"))
+	if planeFront.size() > 0:
+		frontMarker = planeFront[0]
 	ComputeLocalNormalFromSurface();
 	ComputeLocalBasis();
 	ComputeMaxDimensionExtents();
@@ -42,16 +46,24 @@ func ComputeFrontmostIndex() -> int:
 	for i in range(self.vertices.size()):
 		globalVertices.append(self.plane.global_transform * self.vertices[i])
 		
-	var lowestX : float = INF
 	var frontIndex : int = 0
-	
-	for i in range(globalVertices.size()):
-		var isTieX : bool = is_equal_approx(globalVertices[i].x, lowestX)
-		if ((isTieX && globalVertices[i].y > globalVertices[frontIndex].y) || \
-		(not isTieX && globalVertices[i].x < lowestX)):
-			lowestX = globalVertices[i].x
-			frontIndex = i
-			
+	if self.frontMarker == null:
+		var lowestX : float = INF
+
+		for i in range(globalVertices.size()):
+			var isTieX : bool = is_equal_approx(globalVertices[i].x, lowestX)
+			if ((isTieX && globalVertices[i].y > globalVertices[frontIndex].y) || \
+			(not isTieX && globalVertices[i].x < lowestX)):
+				lowestX = globalVertices[i].x
+				frontIndex = i
+	else:
+		var minDist : float = INF
+		for i in range(globalVertices.size()):
+			var calc : float = globalVertices[i].distance_to(self.frontMarker.global_position)
+			if calc < minDist:
+				minDist = calc
+				frontIndex = i
+				
 	return frontIndex
 	
 func ComputeLocalNormalFromSurface() -> void:
@@ -81,7 +93,7 @@ func ComputeMaxDimensionExtents() -> void:
 	for i in range(self.vertices.size()):
 		var d : Vector3 = self.vertices[i] - self.centroid
 		var x : float = d.dot(self.localFrame.x)
-		var z : float = d.dot(self.localFrame.z)
+		var z : float = d.dot(-self.localFrame.z)
 		
 		if x < minX: minX = x
 		if x > maxX: maxX = x

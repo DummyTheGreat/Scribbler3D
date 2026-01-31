@@ -20,7 +20,8 @@ public partial class StaticPart : Part
 {
     public override void _Ready() {
         base._Ready();
-        this.bindingQuads = [.. this.GetChildren().Where(x => x is AlignmentPlane mesh && mesh.HasMeta("IsReceiver")).Cast<AlignmentPlane>().ToList()];
+
+        this.bindingQuads = [.. this.GetChildren().Where(x => x is AlignmentPlane mesh).Cast<AlignmentPlane>().ToList()];
     }
 
     public override void Unselected() {
@@ -33,6 +34,7 @@ public partial class StaticPart : Part
     }
 
     public override void Selected() {
+        base.Selected();
         foreach (Node node in this.GetChildren()) {
             if (node is PartCollider collider) {
                 collider.ToggleAreaDetection(true);

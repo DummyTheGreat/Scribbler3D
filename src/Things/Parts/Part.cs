@@ -21,6 +21,8 @@ public partial class Part : Node3D {
     private Transform3D destTransform;
     private Transform3D startTransform;
 
+    private ThingEditorSpace space;
+
     private static Basis MakeRightHanded(Basis b) {
         //b = b.Orthonormalized();
         if (b.Determinant() < 0f) {
@@ -30,7 +32,7 @@ public partial class Part : Node3D {
         return b;
     }
 
-    public static Transform3D CalculateJoinTransform(AlignmentPlane connectingPlane, AlignmentPlane receivingPlane, Transform3D connectorGlobalPos) {
+    public static Transform3D CalculateJoinTransform(AlignmentPlane connectingPlane, AlignmentPlane receivingPlane, Transform3D connectorGlobalPos, Part part) {
         
         static Vector3 ProjectOntoPlane(Vector3 v, Vector3 n) => v - n * n.Dot(v);
 
@@ -72,8 +74,16 @@ public partial class Part : Node3D {
 
         // Transform the Transform3D to be relative to this Part and not it's child quad so that this Part
         // will transform properly
+
+        // REMOVE THIS OR SOMETHING FOR STATIC
+        //if (part is DeformingPart) {
         Transform3D quadInPart = connectorGlobalPos.AffineInverse() * connectingPlane.GlobalTransform; // <-- Remove for static part?
         return desiredQuadAGlobal * quadInPart.AffineInverse();
+        //}
+        //else {
+        //    return desiredQuadAGlobal;
+        //}
+
     }
 
     private Part GetParentPart() {
@@ -89,8 +99,12 @@ public partial class Part : Node3D {
         this.dragging = d;
     }
 
-    public void DeferredReparenting(Node newParent) {
-        this.Reparent(newParent);
+    public void AttachPart(Part connector, Node3D newParent) {
+        connector.Reparent(newParent);
+    }
+
+    public void DetachPart(Part connector) {
+        connector.Reparent(this.space);
     }
 
     public virtual void Unselected() {
@@ -101,7 +115,12 @@ public partial class Part : Node3D {
         }
     }
 
-    public virtual void Selected() { }
+    public virtual void Selected() {
+        if (this.activeCollider != null && this.GetParent() is not Thing) {
+            CallDeferred(nameof(DetachPart), this);
+        }
+    }
+
 
     public virtual void AddPartCollider(PartCollider collider, MeshInstance3D quad) { }
 
@@ -111,7 +130,7 @@ public partial class Part : Node3D {
         PartCollider connector = activeCollider; // Plane A collider
         PartCollider receiver = activeCollider.GetBoundCollider(); // Plane B collider
 
-        this.destTransform = CalculateJoinTransform(connector.plane, receiver.plane, this.GlobalTransform);
+        this.destTransform = CalculateJoinTransform(connector.plane, receiver.plane, this.GlobalTransform, this);
         this.startTransform = this.GlobalTransform;
         this.t = 0f;
     }
@@ -119,23 +138,15 @@ public partial class Part : Node3D {
     // Signal function recieved from PartCollider
     private void PartConnect(PartCollider newCollider, bool init) {
         this.activeCollider = newCollider;
-        //if (init) {
-        //    this.JoiningInitialization();
-        //    this.joining = true;
-        //    this.activeCollider.GetBoundCollider().associatedPart.receiving = true;
-        //}
     }
 
     // Signal function recieved from PartCollider
     private void PartDisconnect() {
         this.activeCollider = null;
-        //Node partsNode = this.FindParent("Things");
-        //if (partsNode != this.GetParent()) {
-        //    CallDeferred(nameof(DeferredReparenting), partsNode);
-        //}
     }
 
     private void EstablishColliders() {
+        
         foreach (AlignmentPlane quad in this.bindingQuads) {
             PartCollider partCollider = colliderScene.Instantiate<PartCollider>();
             partCollider.associatedPart = this;
@@ -162,13 +173,12 @@ public partial class Part : Node3D {
             }
 
             // Rotate to align with normal of binding quad
-            Vector3 forward = -GlobalTransform.Basis.Z;
-            if (Mathf.Abs(planeNormal.Dot(forward.Normalized())) > 0.99f) { forward = Vector3.Forward; }
-
-            Vector3 right = forward.Cross(planeNormal).Normalized();
+            Vector3 forward = (-quad.GlobalTransform.Basis.Z).Normalized();
+            if (Mathf.Abs(planeNormal.Dot(forward.Normalized())) > 0.99f) { forward = Vector3.Up; }
+            Vector3 right = forward.Normalized().Cross(planeNormal).Normalized();
             Vector3 newForward = planeNormal.Cross(right).Normalized();
-            Basis b = new (right, planeNormal, newForward);
-            //b = MakeRightHanded(b); // what is the point of this again??
+            Basis b = new (right, planeNormal, -newForward);
+
             partCollider.GlobalTransform = new Transform3D(b, partCollider.GlobalTransform.Origin);
 
             SphereShape3D circle = new() { Radius = (quad.GetCentroid() - quad.GetFront()).Length() };
@@ -186,9 +196,21 @@ public partial class Part : Node3D {
         Print("Sealed");
         this.t = 0f;
         this.joining = false;
-        //this.Reparent(activeCollider.GetBoundCollider().associatedPart);
         this.activeCollider.ToggleLinkVisibility(false);
-        this.activeCollider.GetBoundCollider().associatedPart.receiving = false;
+        Part receiverPart = this.activeCollider.GetBoundCollider().associatedPart;
+        receiverPart.receiving = false;
+
+        if (receiverPart is DeformingPart) {
+            BoneAttachment3D receiverSocket = this.activeCollider.GetBoundCollider().GetParentOrNull<BoneAttachment3D>();
+            if (receiverSocket == null) {
+                PushWarning("No Receiver? What the hell!!!");
+            }
+            CallDeferred(nameof(AttachPart), this, receiverSocket);
+        }
+        else {
+            CallDeferred(nameof(AttachPart), this, receiverPart);
+        }
+
     }
 
     public override void _Ready() {
@@ -199,6 +221,11 @@ public partial class Part : Node3D {
         this.joining = false;
         this.receiving = false;
         this.colliderScene = Load<PackedScene>("src/Things/Parts/PartCollider.tscn");
+
+        this.space = this.Owner.GetParentOrNull<ThingEditorSpace>();
+        if (this.space == null) {
+            PushWarning("Thing Space not found");
+        }
 
         int count = 0; Part root = this;
         while (root.GetParentPart() is not null) { count++; root = root.GetParentPart(); }

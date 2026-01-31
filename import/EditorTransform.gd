@@ -19,7 +19,8 @@ static func calculate_join_transform(
 	connecting_plane: MeshInstance3D,
 	receiving_plane: MeshInstance3D,
 	connector_part_global: Transform3D, 
-	receiver_part_global : Transform3D) -> Transform3D:
+	receiver_part_global : Transform3D,
+	scriptName : String) -> Transform3D:
 	# Local helper: project vector v onto plane whose normal is n (assumes n is normalized or close to it)
 	var project_onto_plane := func(v: Vector3, n: Vector3) -> Vector3:
 		return v - n * n.dot(v)
@@ -48,9 +49,9 @@ static func calculate_join_transform(
 	var dims_a: Vector2 = planeA.GetDimensions()
 	var dims_b: Vector2 = planeB.GetDimensions()
 
-	var sx: float = (abs(dims_a.x) > 1e-8) if (dims_b.x / dims_a.x) else 1.0
-	var sz: float = (abs(dims_a.y) > 1e-8) if (dims_b.y / dims_a.y) else 1.0
-
+	var sx: float = (dims_b.x / dims_a.x) if (abs(dims_a.x) > 1e-8) else 1.0
+	var sz: float = (dims_b.y / dims_a.y) if (abs(dims_a.y) > 1e-8) else 1.0
+	
 	var s := Basis(
 		Vector3(sx, 0.0, 0.0),
 		Vector3(0.0, 1.0, 0.0),
@@ -65,5 +66,8 @@ static func calculate_join_transform(
 
 	# Convert from the quad's desired global transform to the *part* transform
 	# so the part moves correctly (same as your C# comment)
+	#if scriptName == "DeformingPart":
 	var quad_in_part: Transform3D = connector_part_global.affine_inverse() * connecting_plane.global_transform
 	return desired_quad_a_global * quad_in_part.affine_inverse()
+	#else:
+		#return desired_quad_a_global

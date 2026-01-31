@@ -8,7 +8,6 @@ using System.Linq;
 public partial class ThingEditor : Control {
     private ItemList things;
     private Node3D worldRoot;
-    private List<Part> partsForEdit;
     private Part selectedPart;
     private int highestSelectionIndex;
     private ExportModelTransformData exportButton;
@@ -20,19 +19,10 @@ public partial class ThingEditor : Control {
     **/
     private void ThingSelected(long index, bool selected) {
         Thing thing = Load<PackedScene>("src/Things/" + things.GetItemText((int)index) + ".tscn").Instantiate<Thing>();
-        worldRoot.AddChild(thing);
-
-        partsForEdit.AddRange(thing.parts);
+        this.worldRoot.AddChild(thing);
         this.exportButton.AddParts([.. thing.parts]);
 
-        MeshInstance3D mesh;
         foreach (Part part in thing.parts) {
-            if (part is StaticPart) {
-                mesh = part.GetChildren().OfType<MeshInstance3D>().Where(x => !x.HasMeta("IsReceiver")).FirstOrDefault();
-            }
-            else {
-                mesh = part.GetChildren().OfType<Skeleton3D>().FirstOrDefault().GetChildren().OfType<MeshInstance3D>().FirstOrDefault();
-            }
             part.ToggleEditorMode();
         }
     }
@@ -43,7 +33,6 @@ public partial class ThingEditor : Control {
         things.MultiSelected += ThingSelected;
         highestSelectionIndex = 0;
         selectedPart = null;
-        partsForEdit = [];
         exportButton = GetChild<ExportModelTransformData>(1);
     }
 
