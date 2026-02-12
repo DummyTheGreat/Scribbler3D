@@ -24,6 +24,18 @@ public partial class StaticPart : Part
         this.bindingQuads = [.. this.GetChildren().Where(x => x is AlignmentPlane mesh).Cast<AlignmentPlane>().ToList()];
     }
 
+    // Receiver
+    public override void AttachPart(Part connector) { 
+        base.AttachPart(connector);
+        connector.Reparent(this);
+        connector.parentPart = connector.GetPathTo(this);
+    }
+
+    // Receiver
+    public override void DetachPart(Part connector) {
+        base.DetachPart(connector);
+    }
+
     public override void Unselected() {
         foreach (Node node in this.GetChildren()) {
             if (node is PartCollider collider) {

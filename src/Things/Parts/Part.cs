@@ -8,6 +8,14 @@ public partial class Part : Node3D {
     [Export]
     public NodePath parentPart;
 
+    // Only includes connectors of different thing type from the part's thing
+    [Export]
+    public Godot.Collections.Array<Part> connectedParts;
+
+    // This doesn't change until the part a new Thing is CREATED, not just when the part connects to another
+    public Thing thing;
+    public string partName;
+
     public bool joining;
     public bool receiving;
     public List<AlignmentPlane> bindingQuads;
@@ -99,12 +107,19 @@ public partial class Part : Node3D {
         this.dragging = d;
     }
 
-    public void AttachPart(Part connector, Node3D newParent) {
-        connector.Reparent(newParent);
+    // Receiver
+    public virtual void AttachPart(Part connector) { 
+        if (!this.connectedParts.Contains(connector)) {
+            this.connectedParts.Add(connector);
+            this.connectedParts.Sort();
+        }
     }
 
-    public void DetachPart(Part connector) {
+    // Receiver
+    public virtual void DetachPart(Part connector) {
         connector.Reparent(this.space);
+        connector.parentPart = null;
+        this.connectedParts.Remove(connector);
     }
 
     public virtual void Unselected() {
@@ -117,7 +132,8 @@ public partial class Part : Node3D {
 
     public virtual void Selected() {
         if (this.activeCollider != null && this.GetParent() is not Thing) {
-            CallDeferred(nameof(DetachPart), this);
+            Part receiverPart = this.activeCollider.GetBoundCollider().associatedPart;
+            receiverPart.CallDeferred(nameof(DetachPart), this);
         }
     }
 
@@ -192,25 +208,13 @@ public partial class Part : Node3D {
     public virtual void SealJoin() {
         // Temporary fix for interpolation not working
         this.GlobalTransform = this.destTransform;
-
         Print("Sealed");
         this.t = 0f;
         this.joining = false;
         this.activeCollider.ToggleLinkVisibility(false);
         Part receiverPart = this.activeCollider.GetBoundCollider().associatedPart;
         receiverPart.receiving = false;
-
-        if (receiverPart is DeformingPart) {
-            BoneAttachment3D receiverSocket = this.activeCollider.GetBoundCollider().GetParentOrNull<BoneAttachment3D>();
-            if (receiverSocket == null) {
-                PushWarning("No Receiver? What the hell!!!");
-            }
-            CallDeferred(nameof(AttachPart), this, receiverSocket);
-        }
-        else {
-            CallDeferred(nameof(AttachPart), this, receiverPart);
-        }
-
+        receiverPart.CallDeferred(nameof(AttachPart), this);
     }
 
     public override void _Ready() {
@@ -220,6 +224,7 @@ public partial class Part : Node3D {
         this.dragging = false;
         this.joining = false;
         this.receiving = false;
+        this.partName = this.GetMeta("extras").AsGodotDictionary<string, string>()["PartName"];
         this.colliderScene = Load<PackedScene>("src/Things/Parts/PartCollider.tscn");
 
         this.space = this.Owner.GetParentOrNull<ThingEditorSpace>();

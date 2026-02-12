@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://j4nm7xo383fn" path="res://src/UI/ThingEditor.cs" id="1_nky41"]
 [ext_resource type="Texture2D" uid="uid://thinqup0r1ei" path="res://icon.svg" id="1_nx73a"]
-[ext_resource type="Script" uid="uid://dnqhv44te2mg8" path="res://src/UI/ExportModelTransformData.cs" id="3_2d61j"]
+[ext_resource type="Theme" uid="uid://bpd6aeosb1jvm" path="res://src/UI/Themes/ThingEditor.tres" id="3_2d61j"]
 [ext_resource type="Script" uid="uid://chg38uuli87a6" path="res://src/UI/ThingEditorSpace.cs" id="3_0355r"]
 [ext_resource type="Script" uid="uid://d4mamlv8ii6yx" path="res://src/UI/EditorController.cs" id="3_caupk"]
 
@@ -19,9 +19,11 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_nky41")
 
-[node name="ItemList" type="ItemList" parent="."]
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="ItemList" type="ItemList" parent="UI"]
+z_index = 2
 custom_minimum_size = Vector2(100, 0)
-layout_mode = 1
 anchors_preset = -1
 anchor_right = 0.2
 anchor_bottom = 0.9
@@ -37,14 +39,31 @@ item_0/icon = ExtResource("1_nx73a")
 item_1/text = "Rocket"
 item_1/icon = ExtResource("1_nx73a")
 
-[node name="Button" type="Button" parent="."]
-layout_mode = 1
+[node name="ShowAnimations" type="Button" parent="UI"]
+z_index = 2
 anchors_preset = -1
 anchor_top = 0.9
 anchor_right = 0.2
 anchor_bottom = 1.0
-text = "Export Model Transform"
-script = ExtResource("3_2d61j")
+text = "Show Animations l>"
+
+[node name="AnimationList" type="HBoxContainer" parent="UI"]
+z_index = 1
+anchors_preset = -1
+anchor_left = 0.2
+anchor_top = 0.9
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Default" type="Label" parent="UI/AnimationList"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+theme = ExtResource("3_2d61j")
+text = "No Animations"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Editor Window" type="SubViewportContainer" parent="."]
 layout_mode = 1

@@ -1,0 +1,12 @@
+[gd_resource type="Theme" load_steps=3 format=3 uid="uid://bpd6aeosb1jvm"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_cl0n2"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_k4imb"]
+bg_color = Color(0.4988854, 0.6240673, 0.6701016, 1)
+
+[resource]
+Label/colors/font_color = Color(0.1584723, 0.15847233, 0.1584723, 1)
+Label/font_sizes/font_size = 24
+Label/styles/focus = SubResource("StyleBoxEmpty_cl0n2")
+Label/styles/normal = SubResource("StyleBoxFlat_k4imb")
