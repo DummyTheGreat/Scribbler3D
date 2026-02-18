@@ -12,6 +12,11 @@ public partial class Part : Node3D {
     [Export]
     public Godot.Collections.Array<Part> connectedParts;
 
+    [Export]
+    public int depth;
+
+    private Material selectionGlowMaterial;
+
     // This doesn't change until the part a new Thing is CREATED, not just when the part connects to another
     public Thing thing;
     public string partName;
@@ -20,8 +25,8 @@ public partial class Part : Node3D {
     public bool receiving;
     public List<AlignmentPlane> bindingQuads;
     public PartCollider activeCollider;
-    public int depth;
     public bool editorMode;
+    public MeshInstance3D skinMesh;
 
     private bool dragging;
     private PackedScene colliderScene;
@@ -29,7 +34,9 @@ public partial class Part : Node3D {
     private Transform3D destTransform;
     private Transform3D startTransform;
 
-    private ThingEditorSpace space;
+    public ThingEditorSpace space;
+    public PackedScene scene;
+
 
     private static Basis MakeRightHanded(Basis b) {
         //b = b.Orthonormalized();
@@ -41,7 +48,7 @@ public partial class Part : Node3D {
     }
 
     public static Transform3D CalculateJoinTransform(AlignmentPlane connectingPlane, AlignmentPlane receivingPlane, Transform3D connectorGlobalPos, Part part) {
-        
+
         static Vector3 ProjectOntoPlane(Vector3 v, Vector3 n) => v - n * n.Dot(v);
 
         // Get the receiver's points of interest in global format
@@ -107,8 +114,12 @@ public partial class Part : Node3D {
         this.dragging = d;
     }
 
+    public virtual MeshInstance3D GetSkinMesh() {
+        return null;
+    }
+
     // Receiver
-    public virtual void AttachPart(Part connector) { 
+    public virtual void AttachPart(Part connector) {
         if (!this.connectedParts.Contains(connector)) {
             this.connectedParts.Add(connector);
             this.connectedParts.Sort();
@@ -123,6 +134,13 @@ public partial class Part : Node3D {
     }
 
     public virtual void Unselected() {
+        int surfaceCount = this.skinMesh.GetSurfaceOverrideMaterialCount();
+        for (int i = 0; i < surfaceCount; i++) {
+            this.skinMesh.SetSurfaceOverrideMaterial(i, null);
+        }
+    }
+
+    public virtual void StopSelected() {
         if (this.activeCollider != null) {
             JoiningInitialization();
             this.joining = true;
@@ -131,10 +149,35 @@ public partial class Part : Node3D {
     }
 
     public virtual void Selected() {
+        int surfaceCount = this.skinMesh.GetSurfaceOverrideMaterialCount();
+        for (int i = 0; i < surfaceCount; i++) {
+            this.skinMesh.SetSurfaceOverrideMaterial(i, this.selectionGlowMaterial);
+        }
+    }
+
+    public virtual void MoveSelected() {
         if (this.activeCollider != null && this.GetParent() is not Thing) {
             Part receiverPart = this.activeCollider.GetBoundCollider().associatedPart;
             receiverPart.CallDeferred(nameof(DetachPart), this);
         }
+    }
+
+    public Part PackPart() {
+        this.Owner = null;
+        this.parentPart = null;
+        this.connectedParts = [];
+        static void TransferTreeOwnership(Node node, Node newOwner) {
+            foreach (Node child in node.GetChildren()) {
+                child.Owner = newOwner;
+                TransferTreeOwnership(child, newOwner);
+            }
+        }
+        TransferTreeOwnership(this, this);
+        PackedScene partScene = new();
+        partScene.Pack(this);
+        Part newPart = partScene.Instantiate<Part>();
+        newPart.scene = partScene;
+        return newPart;
     }
 
 
@@ -151,8 +194,13 @@ public partial class Part : Node3D {
         this.t = 0f;
     }
 
+    public void ConnectColliderSignals(PartCollider collider) {
+        collider.PartConnect += PartConnect;
+        collider.PartDisconnect += PartDisconnect;
+    }
+
     // Signal function recieved from PartCollider
-    private void PartConnect(PartCollider newCollider, bool init) {
+    private void PartConnect(PartCollider newCollider) {
         this.activeCollider = newCollider;
     }
 
@@ -165,7 +213,6 @@ public partial class Part : Node3D {
         
         foreach (AlignmentPlane quad in this.bindingQuads) {
             PartCollider partCollider = colliderScene.Instantiate<PartCollider>();
-            partCollider.associatedPart = this;
             partCollider.SetPlane(quad);
             this.AddPartCollider(partCollider, quad);
 
@@ -200,8 +247,7 @@ public partial class Part : Node3D {
             SphereShape3D circle = new() { Radius = (quad.GetCentroid() - quad.GetFront()).Length() };
             partCollider.GetChild<CollisionShape3D>(0).Shape = circle;
 
-            partCollider.PartConnect += PartConnect;
-            partCollider.PartDisconnect += PartDisconnect;
+            ConnectColliderSignals(partCollider);
         }
     }
 
@@ -218,8 +264,7 @@ public partial class Part : Node3D {
     }
 
     public override void _Ready() {
-
-        this.bindingQuads = [];
+        this.bindingQuads = this.bindingQuads ?? []; 
         this.editorMode = false;
         this.dragging = false;
         this.joining = false;
@@ -227,14 +272,16 @@ public partial class Part : Node3D {
         this.partName = this.GetMeta("extras").AsGodotDictionary<string, string>()["PartName"];
         this.colliderScene = Load<PackedScene>("src/Things/Parts/PartCollider.tscn");
 
-        this.space = this.Owner.GetParentOrNull<ThingEditorSpace>();
-        if (this.space == null) {
-            PushWarning("Thing Space not found");
-        }
+        this.skinMesh = GetSkinMesh();
+        this.selectionGlowMaterial = Load<Material>("src/Materials/SelectionGlowMaterial.tres");
 
-        int count = 0; Part root = this;
-        while (root.GetParentPart() is not null) { count++; root = root.GetParentPart(); }
-        this.depth = count;
+        //int surfaces = this.skinMesh.GetSurfaceOverrideMaterialCount();
+        //for (int i = 0; i < surfaces; i++)
+        //    _original[i] = Target.GetSurfaceOverrideMaterial(i);
+
+        //int count = 0; Part root = this;
+        //while (root.GetParentPart() is not null) { count++; root = root.GetParentPart(); }
+        //this.depth = count;
     }
 
     public override void _Process(double delta) {

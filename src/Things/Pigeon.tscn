@@ -18,8 +18,9 @@ bones/9/rotation = Quaternion(0.8383691, -0.3681119, -0.36811188, -0.16163097)
 transform = Transform3D(0.9999999, 0, 8.940697e-08, -5.9604645e-08, 0.99999976, 5.2154064e-08, -2.3841858e-07, 5.2154064e-08, 0.9999999, 2.0098891, 4.0989866, -3.1532767e-07)
 
 [node name="PigeonHeadPart" parent="PigeonBodyPart/Skeleton3D/NeckSocket_Rec" index="1"]
-transform = Transform3D(0.95769083, 4.190954e-08, 1.13287705e-07, 1.6946451e-08, 1.0000002, -4.9947488e-08, 2.9413883e-08, -5.2154093e-08, 0.9576912, 0.09767318, 0.61930895, 1.4484301e-07)
+transform = Transform3D(0.95769083, 4.1909537e-08, 1.1328772e-07, 1.6946451e-08, 1.0000002, -4.994749e-08, 2.9413883e-08, -5.215409e-08, 0.9576913, 0.09767318, 0.61930895, 1.4484307e-07)
 parentPart = NodePath("../../..")
+depth = 1
 
 [node name="Skeleton3D" parent="PigeonBodyPart/Skeleton3D/NeckSocket_Rec/PigeonHeadPart" index="1"]
 bones/1/rotation = Quaternion(-0.004100942, -0.063907176, -0.06390715, 0.9958991)
@@ -28,15 +29,17 @@ bones/1/rotation = Quaternion(-0.004100942, -0.063907176, -0.06390715, 0.9958991
 transform = Transform3D(0.99999976, 1.4901161e-07, 2.682209e-07, -3.2782555e-07, 1.0000002, -1.6391277e-07, -2.9802322e-07, 2.9802322e-08, 1.0000002, 2.168953, 2.7262623, 0.80913955)
 
 [node name="PigeonWingRightPart" parent="PigeonBodyPart/Skeleton3D/WingSocket_Rec_R" index="1"]
-transform = Transform3D(1.0075562, 0.0044114, -0.0031448368, 0.0012336399, 1.0033717, -0.00012481127, 0.0027213579, -0.00035938117, 1.0000132, -1.535142, -0.7145481, 0.46358615)
+transform = Transform3D(1.0075562, 0.0044113994, -0.0031448368, 0.0012336399, 1.0033716, -0.00012481127, 0.0027213576, -0.00035938114, 1.0000132, -1.5351422, -0.71454835, 0.4635859)
 parentPart = NodePath("../../..")
+depth = 1
 
 [node name="WingSocket_Rec_L" parent="PigeonBodyPart/Skeleton3D" index="2"]
 transform = Transform3D(0.99999976, 2.30968e-07, -2.2351742e-07, -3.427267e-07, 0.99999964, -8.940697e-08, 2.4959445e-07, 2.9802322e-07, 0.9999998, 2.168953, 2.7262626, -0.80913967)
 
 [node name="PigeonWingLeftPart" parent="PigeonBodyPart/Skeleton3D/WingSocket_Rec_L" index="1"]
-transform = Transform3D(1.0000743, -0.0010780622, -7.688259e-05, 4.489724e-05, 1.0008371, 0.00012487733, 3.0491187e-06, -5.592574e-06, 1.0000044, -1.550994, -0.71300435, -0.45933777)
+transform = Transform3D(1.0000743, -0.0010780623, -7.688259e-05, 4.489724e-05, 1.0008371, 0.00012487733, 3.0491185e-06, -5.592574e-06, 1.0000044, -1.5509939, -0.7130041, -0.45933765)
 parentPart = NodePath("../../..")
+depth = 1
 
 [node name="Skeleton3D" parent="PigeonBodyPart/Skeleton3D/WingSocket_Rec_L/PigeonWingLeftPart" index="1"]
 bones/1/rotation = Quaternion(-0.42047217, 0.2541314, 0.2541314, 0.83308923)
@@ -46,12 +49,14 @@ bones/2/rotation = Quaternion(-0.5160422, 0.28947204, 0.24377543, 0.76842695)
 transform = Transform3D(0.9999999, -1.4901161e-07, -1.1920929e-07, -8.940697e-08, 0.9999996, 8.940697e-08, 1.1920929e-07, -2.0861626e-07, 0.99999976, -0.22345358, 1.6766696, -1.6762925e-07)
 
 [node name="PigeonTailPart" parent="PigeonBodyPart/Skeleton3D/LowerSpineSocket_Rec" index="1"]
-transform = Transform3D(0.99999994, 0.0003179312, 2.0059699e-07, -0.00031418368, 0.99997646, 4.7643262e-08, -2.006195e-07, 7.150021e-08, 0.9999999, -2.2324326, -0.07248616, 3.3675974e-07)
+transform = Transform3D(0.99999994, 0.0003179312, 2.0059701e-07, -0.0003141837, 0.99997646, 4.7643276e-08, -2.006195e-07, 7.1500196e-08, 0.9999999, -2.2324326, -0.07248628, 3.3675963e-07)
 parentPart = NodePath("../../..")
+depth = 1
 
 [node name="PigeonLegLeftPart" parent="PigeonBodyPart/Skeleton3D/LegSocket_Rec_L" index="1"]
-transform = Transform3D(0.996947, -0.0009969715, 5.198645e-05, 0.00024418507, 0.99982303, -0.000109400615, 0.0010344324, 0.00024908423, 0.9999048, 0.09463751, -0.6523692, -0.47030827)
+transform = Transform3D(0.9969469, -0.0009969715, 5.198644e-05, 0.000244185, 0.99982303, -0.00010940059, 0.0010344323, 0.00024908423, 0.9999047, 0.09463751, -0.6523691, -0.4703084)
 parentPart = NodePath("../../..")
+depth = 1
 
 [node name="Skeleton3D" parent="PigeonBodyPart/Skeleton3D/LegSocket_Rec_L/PigeonLegLeftPart" index="1"]
 bones/1/rotation = Quaternion(0.54902864, 0.6924431, 0.2445695, -0.39909413)
@@ -59,8 +64,9 @@ bones/2/rotation = Quaternion(0.2920827, -0.53906614, 0.72929543, 0.3036833)
 bones/3/rotation = Quaternion(-0.39322355, 0.8285334, -0.12838295, -0.37739304)
 
 [node name="PigeonLegRightPart" parent="PigeonBodyPart/Skeleton3D/LegSocket_Rec_R" index="1"]
-transform = Transform3D(0.99694717, -0.000996899, -5.2250925e-05, 0.00024428987, 0.9998225, 0.00010852707, -0.0010340442, -0.00024865393, 0.9999031, 0.09467393, -0.6523718, 0.47032037)
+transform = Transform3D(0.9969473, -0.000996899, -5.2250925e-05, 0.00024428987, 0.9998225, 0.00010852706, -0.0010340443, -0.000248654, 0.999903, 0.09467393, -0.65237164, 0.4703203)
 parentPart = NodePath("../../..")
+depth = 1
 
 [node name="Skeleton3D" parent="PigeonBodyPart/Skeleton3D/LegSocket_Rec_R/PigeonLegRightPart" index="1"]
 bones/1/rotation = Quaternion(-0.48687923, 0.706082, 0.35653815, 0.37050965)

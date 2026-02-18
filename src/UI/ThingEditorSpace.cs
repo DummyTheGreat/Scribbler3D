@@ -4,12 +4,17 @@ using System;
 
 public partial class ThingEditorSpace : Node3D
 {
+    //[Signal]
+    //public delegate void SelectedPartUpdatedEventHandler(Part part);
+    public Part selectedPart;
+
     private float collisionRayLength = 1000f;
     private Camera3D camera;
     private Plane dragPlane;
     private Vector3 dragOffset;
     private Transform3D startTransform;
-    private Part collidingPart;
+
+    private bool moving;
     private MouseButton heldButton;
     private EditorController controller;
     private Vector2 mouseStart;
@@ -34,32 +39,38 @@ public partial class ThingEditorSpace : Node3D
             if (collisions.Count == 0) return;
 
             MeshInstance3D hit = (collisions["collider"].AsGodotObject() as Node).GetParentOrNull<MeshInstance3D>();
-            this.collidingPart = hit?.GetParentOrNull<Part>();
+            Part clickedPart = hit?.GetParentOrNull<Part>();
+            if (clickedPart == null) return;
 
-            if (this.collidingPart == null) return;
+            if (clickedPart != this.selectedPart) {
+                Print("hee");
+                this.selectedPart?.Unselected();
+                clickedPart.Selected();
+                this.selectedPart = clickedPart;
+            }
+            else {
+                // Position
+                Vector3 clickPosition = (Vector3)collisions["position"];
+                this.dragPlane = new Plane(this.camera.GlobalTransform.Basis.Z, clickPosition);
+                this.dragOffset = this.selectedPart.GlobalPosition - clickPosition;
 
-            // Rotation
-            this.pivot = hit.GlobalTransform.Origin;
-            //this.startRotation = this.collidingPart.GlobalTransform;
-
-            // Position
-            Vector3 clickPosition = (Vector3)collisions["position"];
-            this.dragPlane = new Plane(this.camera.GlobalTransform.Basis.Z, clickPosition);
-            this.dragOffset = this.collidingPart.GlobalPosition - clickPosition;
-
-            this.collidingPart.Selected();
-            this.controller.ToggleInput(false);
-            this.heldButton = mouse.ButtonIndex;
-            Input.MouseMode = mouse.ButtonIndex == MouseButton.Right ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.ConfinedHidden;
+                this.selectedPart.MoveSelected();
+                this.controller.ToggleInput(false);
+                this.heldButton = mouse.ButtonIndex;
+                Input.MouseMode = mouse.ButtonIndex == MouseButton.Right ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.ConfinedHidden;
+                this.moving = true;
+            }
         }
         else if (@event is InputEventMouseButton { Pressed: false } endmouse && (endmouse.ButtonIndex == MouseButton.Left || endmouse.ButtonIndex == MouseButton.Right)) {
-            this.collidingPart?.Unselected();
-            this.collidingPart = null;
-            this.controller.ToggleInput(true);
-            Input.MouseMode = Input.MouseModeEnum.Visible;
+            if (this.moving) {
+                this.selectedPart?.StopSelected();
+                this.controller.ToggleInput(true);
+                Input.MouseMode = Input.MouseModeEnum.Visible;
+                this.moving = false;
+            }
         }
 
-        if (@event is InputEventMouseMotion motion && this.collidingPart != null) {
+        if (@event is InputEventMouseMotion motion && this.moving) {
             if (this.heldButton == MouseButton.None) return;
 
             if (this.heldButton == MouseButton.Left) {
@@ -69,7 +80,7 @@ public partial class ThingEditorSpace : Node3D
                 Vector3? point = dragPlane.IntersectsRay(origin, direction);
                 if (point == null) return;
 
-                collidingPart.GlobalPosition = point.Value + dragOffset;
+                this.selectedPart.GlobalPosition = point.Value + dragOffset;
             }
             else {
                 float speed = 0.02f;
@@ -77,7 +88,7 @@ public partial class ThingEditorSpace : Node3D
                 this.yaw += -motion.Relative.X * speed;
                 this.pitch -= motion.Relative.Y * speed;
 
-                this.collidingPart.GlobalRotation = new Vector3(collidingPart.GlobalRotation.X, yaw, pitch);
+                this.selectedPart.GlobalRotation = new Vector3(selectedPart.GlobalRotation.X, yaw, pitch);
             }
         }
     }

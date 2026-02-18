@@ -1,0 +1,10 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://cm0dkfcj2y2b2"]
+
+[ext_resource type="Shader" uid="uid://c56i3yt6lu8b3" path="res://src/Shaders/SelectionGlow.gdshader" id="1_yw71e"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_yw71e")
+shader_parameter/glow_color = Color(0.63157946, 0.72959614, 0.9478579, 1)
+shader_parameter/glow_strength = 4.0
+shader_parameter/rim_power = 2.0

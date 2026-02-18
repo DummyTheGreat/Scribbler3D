@@ -18,10 +18,8 @@ using System.Linq;
  */
 public partial class StaticPart : Part
 {
-    public override void _Ready() {
-        base._Ready();
-
-        this.bindingQuads = [.. this.GetChildren().Where(x => x is AlignmentPlane mesh).Cast<AlignmentPlane>().ToList()];
+    public override MeshInstance3D GetSkinMesh() {
+        return (MeshInstance3D)this.GetChildren().First(x => x.Name.ToString().EndsWith("Mesh") && x is MeshInstance3D);
     }
 
     // Receiver
@@ -36,17 +34,17 @@ public partial class StaticPart : Part
         base.DetachPart(connector);
     }
 
-    public override void Unselected() {
+    public override void StopSelected() {
         foreach (Node node in this.GetChildren()) {
             if (node is PartCollider collider) {
                 collider.ToggleAreaDetection(false);
             }
         }
-        base.Unselected();
+        base.StopSelected();
     }
 
-    public override void Selected() {
-        base.Selected();
+    public override void MoveSelected() {
+        base.MoveSelected();
         foreach (Node node in this.GetChildren()) {
             if (node is PartCollider collider) {
                 collider.ToggleAreaDetection(true);
@@ -57,5 +55,10 @@ public partial class StaticPart : Part
 
     public override void AddPartCollider(PartCollider collider, MeshInstance3D quad) {
         this.AddChild(collider);
+    }
+
+    public override void _Ready() {
+        this.bindingQuads = [.. this.GetChildren().Where(x => x is AlignmentPlane mesh).Cast<AlignmentPlane>().ToList()];
+        base._Ready();
     }
 }

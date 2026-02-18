@@ -11,7 +11,7 @@ public partial class PartCollider : Area3D {
     //}
 
     [Signal]
-    public delegate void PartConnectEventHandler(PartCollider newCollider, bool init);
+    public delegate void PartConnectEventHandler(PartCollider newCollider);
 
     [Signal]
     public delegate void PartDisconnectEventHandler();
@@ -103,7 +103,21 @@ public partial class PartCollider : Area3D {
         linkMesh.SurfaceEnd();
 
         this.intersectingColliders = [];
+        Node root = this;
+        while (root.GetParent() != null) {
+            if (root.GetParent() is Part pp) {
+                this.associatedPart = pp;
+                break;
+            }
 
+            root = root.GetParent();
+        }
+
+        if (root.GetParent() == null) {
+            PushError("Collider does not have associated part");
+        }
+
+        Print(this.associatedPart.depth);
         this.CollisionLayer = (uint)(Math.Pow(2, this.associatedPart.depth));
         this.CollisionMask = (uint)(this.associatedPart.depth > 0 ? Math.Pow(2, this.associatedPart.depth - 1) : 0);
 
@@ -160,7 +174,7 @@ public partial class PartCollider : Area3D {
             // BoundArea collider -> collider
             closestCollider.SetBoundCollider(this);
             this.SetBoundCollider(closestCollider);
-            this.EmitSignal(SignalName.PartConnect, this, false);
+            this.EmitSignal(SignalName.PartConnect, this);
         }
 
         if (this.boundCollider != null) {

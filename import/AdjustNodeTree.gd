@@ -15,7 +15,7 @@ func _isAlignmentPlane(node : Node, planeType : String) -> bool:
 	return nodeScript and nodeScript.resource_path.get_file()\
 	.get_basename() == "AlignmentPlane" and node.name.contains(planeType)
 	
-func _validatePartChild(childNodeParent : Node, part : Node, scene : Node, urManager : EditorUndoRedoManager) -> void:
+func _validatePartChild(childNodeParent : Node, part : Node, scene : Node, depth : int) -> void:
 	for child in childNodeParent.get_children():
 		var childScript = child.get_script()
 		if childScript == null:
@@ -25,10 +25,10 @@ func _validatePartChild(childNodeParent : Node, part : Node, scene : Node, urMan
 		if childIsPart:
 			if child not in part.connectedParts:
 				part.connectedParts.append(child)
-			self._dive(child, part, scene, urManager)
+			self._dive(child, part, scene, depth + 1)
 	
 
-func _dive(part : Node, parent : Node, scene : Node, urManager : EditorUndoRedoManager) -> void:
+func _dive(part : Node, parent : Node, scene : Node, depth : int) -> void:
 	var script = part.get_script()
 	if script == null:
 		return
@@ -80,26 +80,28 @@ func _dive(part : Node, parent : Node, scene : Node, urManager : EditorUndoRedoM
 			scene.parts.append(part)
 			
 		part.connectedParts = []
+		part.depth = depth
 
 		if scriptName == "DeformingPart":
 			for attachment : BoneAttachment3D in part\
 			.find_child("Skeleton3D", false)\
 			.get_children()\
 			.filter(func(x): return x is BoneAttachment3D):
-				_validatePartChild(attachment, part, scene, urManager)
+				_validatePartChild(attachment, part, scene, depth)
 		else:
-			_validatePartChild(part, part, scene, urManager)
+			_validatePartChild(part, part, scene, depth)
 
 
 func _run() -> void:
 	self.partScriptNames = ["Part", "DeformingPart", "StaticPart"]
-	var undoRedoManager : EditorUndoRedoManager = get_editor_interface().get_editor_undo_redo()
 	var scene = self.get_scene()
 	scene.parts = []
 	var sceneScript = scene.get_script()
 	var className = sceneScript.resource_path.get_file().get_basename()
 	if (sceneScript and className == "Thing"):
 		for node in scene.get_children():
-			self._dive(node, scene, scene, undoRedoManager)
-
+			self._dive(node, scene, scene, 0)
 			
+	EditorInterface.notify_property_list_changed()
+	var res = EditorInterface.save_scene()
+	print("Saved Successfully" if res == 0 else "Failed to Save")

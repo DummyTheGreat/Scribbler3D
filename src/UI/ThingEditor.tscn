@@ -9,6 +9,7 @@
 [sub_resource type="Environment" id="Environment_nky41"]
 ambient_light_source = 2
 ambient_light_color = Color(0.6872149, 0.68721503, 0.6872149, 1)
+glow_enabled = true
 
 [node name="ThingEditor" type="Control"]
 layout_mode = 3
@@ -64,6 +65,27 @@ theme = ExtResource("3_2d61j")
 text = "No Animations"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="EditTools" type="VBoxContainer" parent="UI"]
+anchors_preset = -1
+anchor_left = 0.8
+anchor_right = 1.0
+anchor_bottom = 0.9
+
+[node name="DuplicateSelected" type="Button" parent="UI/EditTools"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Duplicate Selected"
+
+[node name="DeleteSelected" type="Button" parent="UI/EditTools"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Delete Selected"
+
+[node name="CreateNewThing" type="Button" parent="UI/EditTools"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Create New Thing"
 
 [node name="Editor Window" type="SubViewportContainer" parent="."]
 layout_mode = 1

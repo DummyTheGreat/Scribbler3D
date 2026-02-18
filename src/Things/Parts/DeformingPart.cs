@@ -41,7 +41,11 @@ public partial class DeformingPart : Part {
             this.animationPlayer.Play(name);
         }
     }
-    
+
+    public override MeshInstance3D GetSkinMesh() {
+        return this.skeleton.GetChildren().OfType<MeshInstance3D>().FirstOrDefault();
+    }
+
     // Receiver
     public override void AttachPart(Part connector) {
         base.AttachPart(connector);
@@ -170,17 +174,17 @@ public partial class DeformingPart : Part {
         base.DetachPart(connector);
     }
 
-    public override void Unselected() {
+    public override void StopSelected() {
         foreach (Node node in this.skeleton.GetChildren().OfType<BoneAttachment3D>().SelectMany(x => x.GetChildren())) {
             if (node is PartCollider collider) {
                 collider.ToggleAreaDetection(false);
             }
         }
-        base.Unselected();
+        base.StopSelected();
     }
 
-    public override void Selected() {
-        base.Selected();
+    public override void MoveSelected() {
+        base.MoveSelected();
 
         foreach (Node node in this.skeleton.GetChildren().OfType<BoneAttachment3D>().SelectMany(x => x.GetChildren())) {
             if (node is PartCollider collider) {
@@ -196,10 +200,10 @@ public partial class DeformingPart : Part {
     }
 
     public override void _Ready() {
-        base._Ready();
         this.skeleton = this.GetChildren().OfType<Skeleton3D>().FirstOrDefault();
         this.bindingQuads = [..
             this.skeleton.GetChildren().OfType<BoneAttachment3D>().SelectMany(x => x.GetChildren()).OfType<AlignmentPlane>()
             ];
+        base._Ready();
     }
 }
