@@ -36,12 +36,17 @@ public partial class ThingEditorSpace : Node3D
             query.CollideWithBodies = true;
 
             Godot.Collections.Dictionary collisions = GetWorld3D().DirectSpaceState.IntersectRay(query);
-            if (collisions.Count == 0) return;
+            if (collisions.Count == 0) {
+                if (mouse.ButtonIndex == MouseButton.Left) {
+                    this.selectedPart?.Unselected();
+                    this.selectedPart = null;
+                }
+                return;
+            }
 
             MeshInstance3D hit = (collisions["collider"].AsGodotObject() as Node).GetParentOrNull<MeshInstance3D>();
             Part clickedPart = hit?.GetParentOrNull<Part>();
             if (clickedPart == null) return;
-
             if (clickedPart != this.selectedPart) {
                 Print("hee");
                 this.selectedPart?.Unselected();

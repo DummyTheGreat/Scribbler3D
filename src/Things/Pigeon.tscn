@@ -5,7 +5,7 @@
 [node name="Pigeon" node_paths=PackedStringArray("parts") instance=ExtResource("1_ryern")]
 parts = [NodePath("PigeonBodyPart"), NodePath("PigeonBodyPart/Skeleton3D/NeckSocket_Rec/PigeonHeadPart"), NodePath("PigeonBodyPart/Skeleton3D/WingSocket_Rec_R/PigeonWingRightPart"), NodePath("PigeonBodyPart/Skeleton3D/WingSocket_Rec_L/PigeonWingLeftPart"), NodePath("PigeonBodyPart/Skeleton3D/LowerSpineSocket_Rec/PigeonTailPart"), NodePath("PigeonBodyPart/Skeleton3D/LegSocket_Rec_L/PigeonLegLeftPart"), NodePath("PigeonBodyPart/Skeleton3D/LegSocket_Rec_R/PigeonLegRightPart")]
 
-[node name="PigeonBodyPart" parent="." index="0" node_paths=PackedStringArray("connectedParts")]
+[node name="PigeonBodyPart" parent="." index="0"]
 connectedParts = [NodePath("Skeleton3D/NeckSocket_Rec/PigeonHeadPart"), NodePath("Skeleton3D/WingSocket_Rec_R/PigeonWingRightPart"), NodePath("Skeleton3D/WingSocket_Rec_L/PigeonWingLeftPart"), NodePath("Skeleton3D/LowerSpineSocket_Rec/PigeonTailPart"), NodePath("Skeleton3D/LegSocket_Rec_L/PigeonLegLeftPart"), NodePath("Skeleton3D/LegSocket_Rec_R/PigeonLegRightPart")]
 
 [node name="Skeleton3D" parent="PigeonBodyPart" index="1"]

@@ -10,10 +10,12 @@ public partial class Part : Node3D {
 
     // Only includes connectors of different thing type from the part's thing
     [Export]
-    public Godot.Collections.Array<Part> connectedParts;
+    public Godot.Collections.Array<NodePath> connectedParts;
 
     [Export]
     public int depth;
+
+    public StringName UID;
 
     private Material selectionGlowMaterial;
 
@@ -35,6 +37,7 @@ public partial class Part : Node3D {
     private Transform3D startTransform;
 
     public ThingEditorSpace space;
+    public ThingEditor editor;
     public PackedScene scene;
 
 
@@ -120,17 +123,20 @@ public partial class Part : Node3D {
 
     // Receiver
     public virtual void AttachPart(Part connector) {
-        if (!this.connectedParts.Contains(connector)) {
-            this.connectedParts.Add(connector);
+        NodePath path = this.GetPathTo(connector);
+        connector.parentPart = connector.GetPathTo(this);
+        if (!this.connectedParts.Contains(path)) {
+            this.connectedParts.Add(path);
             this.connectedParts.Sort();
         }
     }
 
     // Receiver
     public virtual void DetachPart(Part connector) {
+        NodePath path = this.GetPathTo(connector);
         connector.Reparent(this.space);
         connector.parentPart = null;
-        this.connectedParts.Remove(connector);
+        this.connectedParts.Remove(path);
     }
 
     public virtual void Unselected() {
@@ -177,6 +183,8 @@ public partial class Part : Node3D {
         partScene.Pack(this);
         Part newPart = partScene.Instantiate<Part>();
         newPart.scene = partScene;
+        // This should be safe...
+        this.QueueFree();
         return newPart;
     }
 
@@ -269,7 +277,6 @@ public partial class Part : Node3D {
         this.dragging = false;
         this.joining = false;
         this.receiving = false;
-        this.partName = this.GetMeta("extras").AsGodotDictionary<string, string>()["PartName"];
         this.colliderScene = Load<PackedScene>("src/Things/Parts/PartCollider.tscn");
 
         this.skinMesh = GetSkinMesh();

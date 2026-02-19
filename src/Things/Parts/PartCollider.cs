@@ -159,6 +159,7 @@ public partial class PartCollider : Area3D {
             this.SetBoundCollider(null);
 
             this.ToggleLinkVisibility(false);
+
             this.EmitSignal(SignalName.PartDisconnect);
             this.RemoveChild(link);
         }

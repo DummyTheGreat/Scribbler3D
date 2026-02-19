@@ -26,7 +26,6 @@ public partial class StaticPart : Part
     public override void AttachPart(Part connector) { 
         base.AttachPart(connector);
         connector.Reparent(this);
-        connector.parentPart = connector.GetPathTo(this);
     }
 
     // Receiver

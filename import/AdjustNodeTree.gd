@@ -19,12 +19,13 @@ func _validatePartChild(childNodeParent : Node, part : Node, scene : Node, depth
 	for child in childNodeParent.get_children():
 		var childScript = child.get_script()
 		if childScript == null:
-			return
+			continue
 		var childScriptName = self._scriptCheck(childScript)
 		var childIsPart = (childScript and childScriptName in partScriptNames)
 		if childIsPart:
-			if child not in part.connectedParts:
-				part.connectedParts.append(child)
+			var path : NodePath = part.get_path_to(child)
+			if path not in part.connectedParts:
+				part.connectedParts.append(path)
 			self._dive(child, part, scene, depth + 1)
 	
 

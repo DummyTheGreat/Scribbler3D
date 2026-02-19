@@ -1,11 +1,15 @@
 using Godot;
-using static Godot.GD;
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
+using static Godot.GD;
 
 public partial class ThingEditor : Control {
+
+    [Signal]
+    public delegate void DuplicateAddedEventHandler();
+
     private ItemList things;
     private ThingEditorSpace worldRoot;
     private Button showAnimations;
@@ -17,27 +21,60 @@ public partial class ThingEditor : Control {
 
     private bool animListActive;
     private Theme theme;
-    private Dictionary<string, int> dupeTracker;
+    private Dictionary<StringName, List<Part>> dupeTracker;
+
+    public AnimationLibrary GetPartAnimationLibrary(StringName UID, string libName, Part part) {
+        // First check if dupes exists, if none exist then the library should not exist either when this is called
+        if (this.dupeTracker.TryGetValue(UID, out List<Part> value)) {
+            foreach (Part matchingPart in value) {
+                // Part is NOT connected to a receiver and thus has its own AnimationPlayer
+                if (matchingPart is DeformingPart pasdf && pasdf.animationPlayer != null) {
+                    Print("Has Duplicate library: ", pasdf.animationPlayer.GetAnimationLibraryList());
+                }
+                if (matchingPart != part && 
+                    matchingPart.activeCollider == null && 
+                    matchingPart is DeformingPart defPart && 
+                    defPart.animationPlayer.HasAnimationLibrary(libName)) {
+                    return defPart.animationPlayer.GetAnimationLibrary(libName);
+                }
+            }
+        }
+        return null;
+    }
 
 
+    /**
+     * For the sake of editing, dissolve the thing scene into individual part scenes then reform original part structure without thing overhead
+     **/
     private Part ThingSceneDivision(Part part, Thing thing) {
         List<(Part, string)> partToParent = [];
 
-        foreach (Part child in part.connectedParts) {
-            Part newChild = ThingSceneDivision(child.Duplicate() as Part, thing);
-            Node parent = child.GetParent();
+        foreach (NodePath childPath in part.connectedParts) {
+            Part originalChild = part.GetNode<Part>(childPath);
+            // Duplicated child might create a memory leak, check back later
+            Part newChild = ThingSceneDivision(originalChild.Duplicate() as Part, thing);
+            Node parent = originalChild.GetParent();
             partToParent.Add((newChild, parent.Name));
-            parent.RemoveChild(child);
-            child.QueueFree();
+            parent.RemoveChild(originalChild);
+            originalChild.QueueFree();
         }
         Part newPart = part.PackPart();
         foreach ((Part, string) pair in partToParent) {
-            newPart.FindChild(pair.Item2).AddChild(pair.Item1);
-            newPart.connectedParts.Add(pair.Item1);
+            if (newPart.Name != pair.Item2) {
+                newPart.FindChild(pair.Item2).AddChild(pair.Item1);
+            }
+            else {
+                newPart.AddChild(pair.Item1);
+            }
+            newPart.connectedParts.Add(newPart.GetPathTo(pair.Item1));
             pair.Item1.parentPart = pair.Item1.GetPathTo(newPart);
         }
+        // change to an init
         newPart.thing = thing;
         newPart.space = this.worldRoot;
+        newPart.editor = this;
+        newPart.partName = newPart.GetMeta("extras").AsGodotDictionary<string, string>()["PartName"];
+        newPart.UID = newPart.thing.Name + newPart.partName;
         part.QueueFree();
         return newPart;
     }
@@ -48,14 +85,26 @@ public partial class ThingEditor : Control {
      * Triggers on ItemList | MultiSelected
     **/
     private void ThingSelected(long index, bool selected) {
+
+        static void PrepareParts(Part part, Dictionary<StringName, List<Part>> tracker) {
+            part.ToggleEditorMode();
+            if (!tracker.TryAdd(part.UID, [part])) {
+                tracker[part.UID].Add(part);
+            }
+            foreach (NodePath childPath in part.connectedParts) {
+                Part child = part.GetNode<Part>(childPath);
+                PrepareParts(child, tracker);
+            }
+        }
+
         Thing thing = Load<PackedScene>("src/Things/" + things.GetItemText((int)index) + ".tscn").Instantiate<Thing>();
         foreach (Part thingPart in thing.parts.Where(x => x.parentPart == null)) {
             Part part = ThingSceneDivision(thingPart.Duplicate() as Part, thing);
             this.worldRoot.AddChild(part);
-
             if (part is DeformingPart defPart) {
-                Print(thing);
+
                 AnimationPlayer animPlayer = thing.GetChildren().OfType<AnimationPlayer>().FirstOrDefault();
+                animPlayer.Owner = null;
                 animPlayer.Reparent(defPart);
                 defPart.animationPlayer = animPlayer;
 
@@ -98,20 +147,8 @@ public partial class ThingEditor : Control {
                     }
                 }
             }
+            PrepareParts(part, dupeTracker);
         }
-        //this.exportButton.AddParts([.. thing.parts]);
-        foreach (Part part in thing.parts) {
-
-
-            if (part.parentPart == null) {
-                part.Reparent(this.worldRoot);
-                // Move Animator to top part
-                
-            }
-
-            part.ToggleEditorMode();
-        }
-        thing.Hide();
     }
 
     private static void KillTween(Tween t) {
@@ -142,45 +179,57 @@ public partial class ThingEditor : Control {
     // Signal when "Duplicate Selected" is pressed
     private void DuplicateSelectedPart() {
 
-        static void RemovePartColliders(Node node) {
-            foreach (Node child in node.GetChildren()) {
-                if (child is PartCollider pc) {
-                    node.RemoveChild(pc);
-                    pc.QueueFree();
-                }
-                RemovePartColliders(child);
-            }
-        }
-
         Part p = this.worldRoot.selectedPart;
         // For now only allow duplication with singleton parts
         if (p != null && p.parentPart == null && p.connectedParts.Count == 0) {
 
-            Part dupe = p.Duplicate() as Part;
+            Part dupe = p.scene.Instantiate<Part>();
 
             string name = p.Name.ToString();
             string originalName = name.Contains('_') ? name[..name.RFind("_")] : name;
-            if (this.dupeTracker.ContainsKey(originalName)) {
-                this.dupeTracker[originalName] += 1;
-            }
-            else {
-                this.dupeTracker.Add(originalName, 1);
-            }
-            dupe.Name = originalName + "_" + this.dupeTracker[originalName];
 
-            RemovePartColliders(dupe);
+            // THIS SHOULD NEVER FAIL EEEEEEEVVVVVEEEEEEEEER
+            this.dupeTracker[p.UID].Add(dupe);
+
+            dupe.Name = originalName + "_" + this.dupeTracker[p.UID].Count;
+            dupe.thing = p.thing;
+            dupe.space = this.worldRoot;
+            dupe.editor = this;
+            dupe.partName = p.partName;
+            dupe.UID = p.UID;
+            dupe.scene = p.scene;
             Print(dupe.Name);
-            dupe.parentPart = null;
+            
+            //dupe.parentPart = null;
             this.worldRoot.AddChild(dupe);
+            dupe.GlobalTransform = p.GlobalTransform;
             dupe.ToggleEditorMode();
+            if (p is DeformingPart dp) {
+                AnimationPlayer da = dp.animationPlayer.Duplicate() as AnimationPlayer;
+                dupe.AddChild(da);
+                (dupe as DeformingPart).animationPlayer = da;
+            }
             dupe.Unselected();
+
+            Print(dupe.GlobalPosition);
+
 
         }
     }
 
     // Signal when "Delete Selected" is pressed
     private void DeleteSelectedPart() {
+        Part p = this.worldRoot.selectedPart;
+        if (p != null && p.parentPart == null && p.connectedParts.Count == 0) {
 
+            p.Unselected();
+            this.worldRoot.selectedPart = null;
+            this.worldRoot.RemoveChild(p);
+
+            // THIS SHOULD NEVER FAIL EEEEEEEVVVVVEEEEEEEEER
+            this.dupeTracker[p.UID].Remove(p);
+            p.QueueFree();
+        }
     }
 
     // Signal when "Create New Thing" is pressed
