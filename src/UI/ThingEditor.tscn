@@ -87,6 +87,23 @@ layout_mode = 2
 size_flags_vertical = 3
 text = "Create New Thing"
 
+[node name="RotationButtons" type="HBoxContainer" parent="UI/EditTools"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RotateClockwise" type="Button" parent="UI/EditTools/RotationButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Rotate
+Clockwise"
+
+[node name="RotateCounter" type="Button" parent="UI/EditTools/RotationButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Rotate
+Counter-
+Clockwise"
+
 [node name="Editor Window" type="SubViewportContainer" parent="."]
 layout_mode = 1
 anchors_preset = -1

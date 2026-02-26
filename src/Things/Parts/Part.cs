@@ -50,7 +50,8 @@ public partial class Part : Node3D {
         return b;
     }
 
-    public static Transform3D CalculateJoinTransform(AlignmentPlane connectingPlane, AlignmentPlane receivingPlane, Transform3D connectorGlobalPos, Part part) {
+    // This is going to be called a lot so it should be optimized
+    public static Transform3D CalculateJoinTransform(AlignmentPlane connectingPlane, AlignmentPlane receivingPlane, Transform3D connectorGlobalPos) {
 
         static Vector3 ProjectOntoPlane(Vector3 v, Vector3 n) => v - n * n.Dot(v);
 
@@ -71,12 +72,22 @@ public partial class Part : Node3D {
         Basis targetBasisW = new(rightBWorld, upBWorld, forwardBWorld);
 
         Basis aLocalFrame = connectingPlane.GetLocalFrame();
+        Basis recLocalFrame = receivingPlane.GetLocalFrame();
 
-        float sx = (connectingPlane.GetDimensions().X > 1e-8f) ? (receivingPlane.GetDimensions().X / connectingPlane.GetDimensions().X) : 1f;
-        float sz = (connectingPlane.GetDimensions().Y > 1e-8f) ? (receivingPlane.GetDimensions().Y / connectingPlane.GetDimensions().Y) : 1f;
+        Vector2 conDims = connectingPlane.GetDimensions();
+
+        // Need to account for Global transformation of the receiver plane due to custom bone scaling
+        Vector2 recLocalDims = receivingPlane.GetDimensions();
+        Basis recBasis = receivingPlane.GlobalTransform.Basis;
+        float recWorldScaleX = (recBasis * recLocalFrame.X).Length();
+        float recWorldScaleZ = (recBasis * recLocalFrame.Z).Length();
+        Vector2 recDims = new (recLocalDims.X * recWorldScaleX, recLocalDims.Y * recWorldScaleZ);
+
+        float sx = (conDims.X > 1e-8f) ? (recDims.X / conDims.X) : 1f;
+        float sz = (conDims.Y > 1e-8f) ? (recDims.Y / conDims.Y) : 1f;
 
         // scale only in-plane axes of the *target frame*
-        Basis S = new(
+        Basis S = new (
             new Vector3(sx, 0, 0),
             new Vector3(0, 1, 0),
             new Vector3(0, 0, sz)
@@ -84,24 +95,21 @@ public partial class Part : Node3D {
 
         // Desired global basis for plane A
         Basis desiredQuadABasisW = targetBasisW * S * aLocalFrame.Inverse();
-        //desiredQuadABasisW = MakeRightHanded(desiredQuadABasisW);
 
         // Matches front vertices and origins together for positional correctness
         Vector3 desiredQuadAOriginW = frontBWorld - (desiredQuadABasisW * connectingPlane.GetFront());
         Transform3D desiredQuadAGlobal = new(desiredQuadABasisW, desiredQuadAOriginW);
 
-        // Transform the Transform3D to be relative to this Part and not it's child quad so that this Part
-        // will transform properly
+        // Convert the Transform3D to be relative to this Part and not it's child quad so that this Part will transform properly
+        Transform3D quadInPart = connectorGlobalPos.AffineInverse() * connectingPlane.GlobalTransform;
+        // Strip bone scale so it isn't inverted into the part transform;
+        // the scale relationship is already handled by S above
+        Basis quadRotationOnly = quadInPart.Basis.Orthonormalized();
+        Transform3D quadInPartNoScale = new(quadRotationOnly, quadInPart.Origin);
+        return desiredQuadAGlobal * quadInPartNoScale.AffineInverse();
 
-        // REMOVE THIS OR SOMETHING FOR STATIC
-        //if (part is DeformingPart) {
-        Transform3D quadInPart = connectorGlobalPos.AffineInverse() * connectingPlane.GlobalTransform; // <-- Remove for static part?
-        return desiredQuadAGlobal * quadInPart.AffineInverse();
-        //}
-        //else {
-        //    return desiredQuadAGlobal;
-        //}
-
+        //Transform3D quadInPart = connectorGlobalPos.AffineInverse() * connectingPlane.GlobalTransform;
+        //return desiredQuadAGlobal * quadInPart.AffineInverse();
     }
 
     private Part GetParentPart() {
@@ -191,13 +199,13 @@ public partial class Part : Node3D {
 
     public virtual void AddPartCollider(PartCollider collider, MeshInstance3D quad) { }
 
+    // Connector
     public virtual void JoiningInitialization() {
-
 
         PartCollider connector = activeCollider; // Plane A collider
         PartCollider receiver = activeCollider.GetBoundCollider(); // Plane B collider
 
-        this.destTransform = CalculateJoinTransform(connector.plane, receiver.plane, this.GlobalTransform, this);
+        this.destTransform = CalculateJoinTransform(connector.plane, receiver.plane, this.GlobalTransform);
         this.startTransform = this.GlobalTransform;
         this.t = 0f;
     }
@@ -281,14 +289,6 @@ public partial class Part : Node3D {
 
         this.skinMesh = GetSkinMesh();
         this.selectionGlowMaterial = Load<Material>("src/Materials/SelectionGlowMaterial.tres");
-
-        //int surfaces = this.skinMesh.GetSurfaceOverrideMaterialCount();
-        //for (int i = 0; i < surfaces; i++)
-        //    _original[i] = Target.GetSurfaceOverrideMaterial(i);
-
-        //int count = 0; Part root = this;
-        //while (root.GetParentPart() is not null) { count++; root = root.GetParentPart(); }
-        //this.depth = count;
     }
 
     public override void _Process(double delta) {

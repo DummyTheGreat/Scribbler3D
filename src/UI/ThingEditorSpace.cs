@@ -47,14 +47,13 @@ public partial class ThingEditorSpace : Node3D
             MeshInstance3D hit = (collisions["collider"].AsGodotObject() as Node).GetParentOrNull<MeshInstance3D>();
             Part clickedPart = hit?.GetParentOrNull<Part>();
             if (clickedPart == null) return;
-            if (clickedPart != this.selectedPart) {
-                Print("hee");
+            
+            if (clickedPart != this.selectedPart) { // Selected
                 this.selectedPart?.Unselected();
                 clickedPart.Selected();
                 this.selectedPart = clickedPart;
             }
-            else {
-                // Position
+            else { // Moving selected
                 Vector3 clickPosition = (Vector3)collisions["position"];
                 this.dragPlane = new Plane(this.camera.GlobalTransform.Basis.Z, clickPosition);
                 this.dragOffset = this.selectedPart.GlobalPosition - clickPosition;

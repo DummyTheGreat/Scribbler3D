@@ -7,9 +7,6 @@ using static Godot.GD;
 
 public partial class ThingEditor : Control {
 
-    [Signal]
-    public delegate void DuplicateAddedEventHandler();
-
     private ItemList things;
     private ThingEditorSpace worldRoot;
     private Button showAnimations;
@@ -18,10 +15,40 @@ public partial class ThingEditor : Control {
     private Button duplicateSelected;
     private Button deleteSelected;
     private Button createNewThing;
+    private Button rotateClockwise;
+    private Button rotateCounterClockwise;
 
     private bool animListActive;
     private Theme theme;
     private Dictionary<StringName, List<Part>> dupeTracker;
+
+    public void AddPartSlidersToToolList(Skeleton3D skeleton) {
+        static void TraverseBoneTree(int boneIndex, Skeleton3D skeleton, VBoxContainer toolList) {
+            string boneName = skeleton.GetBoneName(boneIndex);
+            if (boneName == "neutral_bone") return;
+
+            if (!(boneName.Contains(".Rec") || boneName.Contains(".Con"))) {
+                BoneScaleSlider slider = BoneScaleSlider.Create(boneName, skeleton);
+                toolList.AddChild(slider);
+            }
+
+            foreach (int childBone in skeleton.GetBoneChildren(boneIndex)) {
+                TraverseBoneTree(childBone, skeleton, toolList);
+            }
+        }
+
+        foreach (int rootBone in skeleton.GetParentlessBones()) {
+            TraverseBoneTree(rootBone, skeleton, this.toolList);
+        }
+    }
+
+    public void RemovePartSlidersFromToolList(Skeleton3D skeleton) {
+        foreach (BoneScaleSlider slider in this.toolList.GetChildren().OfType<BoneScaleSlider>()) {
+            if (skeleton == slider.GetReferencedSkeleton()) {
+                this.toolList.RemoveChild(slider);
+            }
+        }
+    }
 
     public AnimationLibrary GetPartAnimationLibrary(StringName UID, string libName, Part part) {
         // First check if dupes exists, if none exist then the library should not exist either when this is called
@@ -211,9 +238,6 @@ public partial class ThingEditor : Control {
             }
             dupe.Unselected();
 
-            Print(dupe.GlobalPosition);
-
-
         }
     }
 
@@ -227,6 +251,7 @@ public partial class ThingEditor : Control {
             this.worldRoot.RemoveChild(p);
 
             // THIS SHOULD NEVER FAIL EEEEEEEVVVVVEEEEEEEEER
+            // (Parts are automatically added to tracker when subdivided from Thing)
             this.dupeTracker[p.UID].Remove(p);
             p.QueueFree();
         }
@@ -235,6 +260,16 @@ public partial class ThingEditor : Control {
     // Signal when "Create New Thing" is pressed
     private void CreateNewThing() {
 
+    }
+
+    private void RotatePart(float degrees) {
+        Part p = this.worldRoot.selectedPart;
+        if (p.activeCollider == null) { return; }
+        AlignmentPlane connectingPlane = p.activeCollider.plane;
+        AlignmentPlane receivingPlane = p.activeCollider.GetBoundCollider().plane;
+        connectingPlane.ShiftFrontToNext(degrees);
+        Transform3D newTransform = Part.CalculateJoinTransform(connectingPlane, receivingPlane, p.GlobalTransform);
+        p.GlobalTransform = newTransform;
     }
 
     public override void _Ready() {
@@ -257,6 +292,11 @@ public partial class ThingEditor : Control {
         this.deleteSelected.Pressed += DeleteSelectedPart;
         this.createNewThing = this.toolList.GetChild<Button>(2);
         this.createNewThing.Pressed += CreateNewThing;
+        HBoxContainer rotationButtons = this.toolList.GetChild<HBoxContainer>(3);
+        this.rotateClockwise = rotationButtons.GetChild<Button>(0);
+        this.rotateClockwise.Pressed += () => RotatePart(90);
+        this.rotateCounterClockwise = rotationButtons.GetChild<Button>(1);
+        this.rotateCounterClockwise.Pressed += () => RotatePart(-90);
 
         this.worldRoot = GetChild<SubViewportContainer>(1).GetChild<SubViewport>(0).GetChild<ThingEditorSpace>(0);
         this.animListActive = false;

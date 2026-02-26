@@ -1,0 +1,23 @@
+[gd_scene load_steps=2 format=3 uid="uid://bbcx0svff23tb"]
+
+[ext_resource type="Script" uid="uid://cxjfm7we1fohg" path="res://src/UI/BoneScaleSlider.cs" id="1_2n0h1"]
+
+[node name="BoneScaleSlider" type="HBoxContainer"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 23.0
+grow_horizontal = 2
+script = ExtResource("1_2n0h1")
+
+[node name="BoneName" type="Label" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+
+[node name="ScaleSlider" type="HSlider" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 2.0
+step = 0.05
+value = 1.0
+tick_count = 3

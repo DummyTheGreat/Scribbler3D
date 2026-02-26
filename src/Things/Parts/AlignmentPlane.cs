@@ -12,6 +12,9 @@ public partial class AlignmentPlane : MeshInstance3D {
     private Node3D frontMarker;
     private Vector3 front;
     private Vector2 dimensions;
+    private int frontIndex;
+
+    private Vector3 old;
 
     static Vector3 Centroid(Vector3[] v) {
         Vector3 sum = Vector3.Zero;
@@ -25,6 +28,25 @@ public partial class AlignmentPlane : MeshInstance3D {
     public Vector3 GetFront() { return this.front; }
     public Vector2 GetDimensions() { return this.dimensions; }
 
+    public void ShiftFrontToNext(float degrees) {
+
+        Basis normalMatrix = this.GlobalTransform.Basis.Inverse().Transposed();
+        Vector3 globalNormal = (normalMatrix * this.localNormal).Normalized();
+
+        float angle = Mathf.DegToRad(degrees);
+        Vector3 globalCentroid = this.GlobalTransform * this.centroid;
+        Transform3D t = this.frontMarker.GlobalTransform;
+        t.Origin -= globalCentroid;
+        t = t.Rotated(globalNormal, angle);
+        t.Origin += globalCentroid;
+        // This should only affect position
+        this.frontMarker.GlobalTransform = t;
+
+        ComputeLocalBasis();
+        ComputeMaxDimensionExtents();
+
+    }
+
     public void FlipNormal() { 
         this.localNormal = -this.localNormal;
         ComputeLocalBasis();
@@ -36,31 +58,21 @@ public partial class AlignmentPlane : MeshInstance3D {
         Vector3[] globalVertices = new Vector3[this.vertices.Length];
         for (int i = 0; i < this.vertices.Length; i++)
             globalVertices[i] = this.GlobalTransform * this.vertices[i];
-        
+
+        Vector3 globalCentroid = this.GlobalTransform * this.centroid;
+
         int frontIndex = 0;
-        if (this.frontMarker == null) {
-
-            float lowestX = float.MaxValue;
-
-            for (int i = 0; i < globalVertices.Length; i++) {
-                bool isTieX = Mathf.IsEqualApprox(globalVertices[i].X, lowestX);
-                if ((isTieX && globalVertices[i].Y > globalVertices[frontIndex].Y) ||
-                    (!isTieX && globalVertices[i].X < lowestX)) {
-                    lowestX = globalVertices[i].X;
-                    frontIndex = i;
-                }
+        float maxDot = float.MinValue;
+        for (int i = 0; i < globalVertices.Length; i++) {
+            Vector3 vertex = (globalVertices[i] - globalCentroid).Normalized();
+            Vector3 marker = (this.frontMarker.GlobalPosition - globalCentroid).Normalized();
+            float calc = vertex.Dot(marker);
+            if (calc > maxDot) {
+                maxDot = calc;
+                frontIndex = i;
             }
         }
-        else {
-            float minDist = float.MaxValue;
-            for (int i = 0; i < globalVertices.Length; i++) {
-                float calc = globalVertices[i].DistanceTo(this.frontMarker.GlobalPosition);
-                if (calc < minDist) {
-                    minDist = calc;
-                    frontIndex = i;
-                }
-            }
-        }
+        this.frontIndex = frontIndex;
         return frontIndex;
     }
 
@@ -83,17 +95,8 @@ public partial class AlignmentPlane : MeshInstance3D {
         this.front = this.vertices[this.ComputeFrontmostIndex()];
 
         Vector3 up = this.GetLocalNormal().Normalized();
-        Vector3 forward = ProjectOntoPlane(front - this.centroid, up).Normalized();
-        //if (fA_L.LengthSquared() < 1e-10f) fA_L = Vector3.Right;
-        //fA_L = fA_L.Normalized();
-
-        //forward = ProjectOntoPlane(forward, up).Normalized(); // <-- is this necessary? no?
+        Vector3 forward = ProjectOntoPlane(this.front - this.centroid, up).Normalized();
         Vector3 right = up.Cross(forward).Normalized();
-        //if (rA_L.LengthSquared() < 1e-10f) {
-        //    fA_L = ProjectOntoPlane(Vector3.Forward, upA_L).Normalized();
-        //    rA_L = upA_L.Cross(fA_L).Normalized();
-        //}
-        //fA_L = rA_L.Cross(upA_L).Normalized();
 
         this.localFrame = new(right, up, forward);
     }

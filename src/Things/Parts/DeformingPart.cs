@@ -179,6 +179,16 @@ public partial class DeformingPart : Part {
         base.DetachPart(connector);
     }
 
+    public override void Selected() {
+        this.editor.AddPartSlidersToToolList(this.skeleton);
+        base.Selected();
+    }
+
+    public override void Unselected() {
+        this.editor.RemovePartSlidersFromToolList(this.skeleton);
+        base.Unselected();
+    }
+
     public override void StopSelected() {
         foreach (Node node in this.skeleton.GetChildren().OfType<BoneAttachment3D>().SelectMany(x => x.GetChildren())) {
             if (node is PartCollider collider) {

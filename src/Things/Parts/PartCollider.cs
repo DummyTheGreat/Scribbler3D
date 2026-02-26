@@ -5,10 +5,6 @@ using System;
 using System.Collections.Generic;
 
 public partial class PartCollider : Area3D {
-    //public enum ColliderType {
-    //    Detector,
-    //    Reciever
-    //}
 
     [Signal]
     public delegate void PartConnectEventHandler(PartCollider newCollider);
@@ -16,18 +12,13 @@ public partial class PartCollider : Area3D {
     [Signal]
     public delegate void PartDisconnectEventHandler();
 
-    //private ColliderType colliderType;
-
     public AlignmentPlane plane;
-    public Basis planeBasis;
     public Part associatedPart;
 
     private PartCollider boundCollider;
     private List<PartCollider> intersectingColliders;
     private MeshInstance3D link;
     private ImmediateMesh linkMesh;
-    private Vector3[] vertices;
-    private int frontIndex;
     private bool initPhase;
 
 
