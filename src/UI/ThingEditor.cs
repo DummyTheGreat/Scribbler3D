@@ -22,6 +22,10 @@ public partial class ThingEditor : Control {
     private Theme theme;
     private Dictionary<StringName, List<Part>> dupeTracker;
 
+    public ThingEditorSpace GetEditorSpace() { return this.worldRoot; }
+
+    public Dictionary<StringName, List<Part>> GetDupeTracker() { return this.dupeTracker; }
+
     public void AddPartSlidersToToolList(Skeleton3D skeleton) {
         static void TraverseBoneTree(int boneIndex, Skeleton3D skeleton, VBoxContainer toolList) {
             string boneName = skeleton.GetBoneName(boneIndex);
@@ -51,6 +55,8 @@ public partial class ThingEditor : Control {
     }
 
     public AnimationLibrary GetPartAnimationLibrary(StringName UID, string libName, Part part) {
+        if (!part.editorMode) { return null; }
+
         // First check if dupes exists, if none exist then the library should not exist either when this is called
         if (this.dupeTracker.TryGetValue(UID, out List<Part> value)) {
             foreach (Part matchingPart in value) {
@@ -69,41 +75,10 @@ public partial class ThingEditor : Control {
         return null;
     }
 
-
-    /**
-     * For the sake of editing, dissolve the thing scene into individual part scenes then reform original part structure without thing overhead
-     **/
-    private Part ThingSceneDivision(Part part, Thing thing) {
-        List<(Part, string)> partToParent = [];
-
-        foreach (NodePath childPath in part.connectedParts) {
-            Part originalChild = part.GetNode<Part>(childPath);
-            // Duplicated child might create a memory leak, check back later
-            Part newChild = ThingSceneDivision(originalChild.Duplicate() as Part, thing);
-            Node parent = originalChild.GetParent();
-            partToParent.Add((newChild, parent.Name));
-            parent.RemoveChild(originalChild);
-            originalChild.QueueFree();
+    public void AddToTracker(Part part) {
+        if (!this.dupeTracker.TryAdd(part.UID, [part])) {
+            this.dupeTracker[part.UID].Add(part);
         }
-        Part newPart = part.PackPart();
-        foreach ((Part, string) pair in partToParent) {
-            if (newPart.Name != pair.Item2) {
-                newPart.FindChild(pair.Item2).AddChild(pair.Item1);
-            }
-            else {
-                newPart.AddChild(pair.Item1);
-            }
-            newPart.connectedParts.Add(newPart.GetPathTo(pair.Item1));
-            pair.Item1.parentPart = pair.Item1.GetPathTo(newPart);
-        }
-        // change to an init
-        newPart.thing = thing;
-        newPart.space = this.worldRoot;
-        newPart.editor = this;
-        newPart.partName = newPart.GetMeta("extras").AsGodotDictionary<string, string>()["PartName"];
-        newPart.UID = newPart.thing.Name + newPart.partName;
-        part.QueueFree();
-        return newPart;
     }
 
     /** 
@@ -112,54 +87,21 @@ public partial class ThingEditor : Control {
      * Triggers on ItemList | MultiSelected
     **/
     private void ThingSelected(long index, bool selected) {
-
-        static void PrepareParts(Part part, Dictionary<StringName, List<Part>> tracker) {
-            part.ToggleEditorMode();
-            if (!tracker.TryAdd(part.UID, [part])) {
-                tracker[part.UID].Add(part);
-            }
-            foreach (NodePath childPath in part.connectedParts) {
-                Part child = part.GetNode<Part>(childPath);
-                PrepareParts(child, tracker);
-            }
-        }
-
-        Thing thing = Load<PackedScene>("src/Things/" + things.GetItemText((int)index) + ".tscn").Instantiate<Thing>();
-        foreach (Part thingPart in thing.parts.Where(x => x.parentPart == null)) {
-            Part part = ThingSceneDivision(thingPart.Duplicate() as Part, thing);
-            this.worldRoot.AddChild(part);
-            if (part is DeformingPart defPart) {
-
-                AnimationPlayer animPlayer = thing.GetChildren().OfType<AnimationPlayer>().FirstOrDefault();
-                animPlayer.Owner = null;
-                animPlayer.Reparent(defPart);
-                defPart.animationPlayer = animPlayer;
-
-                foreach (string animLibStr in animPlayer.GetAnimationLibraryList()) {
-                    AnimationLibrary animLib = animPlayer.GetAnimationLibrary(animLibStr);
-                    if (animLib.GetAnimationListSize() > 0 &&
-                        this.animationList.GetChildCount() == 1 &&
-                        this.animationList.GetChild(0).Name == "Default") {
-                        this.animationList.GetChild<Label>(0).Hide();
-                    }
-                    foreach (StringName animStr in animLib.GetAnimationList()) {
-
-                        // Adjust track paths for relocation of animation player to main part for editing
-                        Animation anim = animLib.GetAnimation(animStr);
-                        for (int i = 0; i < anim.GetTrackCount(); i++) {
-                            // use NodePath.slice wherever the hell that becomes a thing
-                            NodePath originalPath = anim.TrackGetPath(i);
-                            string newPath = "";
-                            for (int j = 1; j < originalPath.GetNameCount(); j++) {
-                                if (j != 1) { newPath += "/"; }
-                                newPath += originalPath.GetName(j);
-                            }
-                            for (int j = 0; j < originalPath.GetSubNameCount(); j++) {
-                                newPath += ":" + originalPath.GetSubName(j);
-                            }
-                            anim.TrackSetPath(i, newPath);
+        Thing thing = Load<PackedScene>("src/Things/" + this.things.GetItemText((int)index) + ".tscn").Instantiate<Thing>();
+        Print(thing.Name);
+        thing.Assemble(this.worldRoot, this);
+        // Animation stuff
+        Part[] newChildren = [.. this.worldRoot.GetChildren().OfType<Part>().Where(x => x.thing == thing)];
+        foreach (Part part in newChildren) {
+            if (part.animationPlayer != null) {
+                foreach (StringName libStr in part.animationPlayer.GetAnimationLibraryList()) {
+                    AnimationLibrary lib = part.animationPlayer.GetAnimationLibrary(libStr);
+                    foreach (StringName animStr in lib.GetAnimationList()) {
+                        if (lib.GetAnimationListSize() > 0 &&
+                            this.animationList.GetChildCount() == 1 &&
+                            this.animationList.GetChild(0).Name == "Default") {
+                            this.animationList.GetChild<Label>(0).Hide();
                         }
-
                         Button animLabel = new() {
                             Name = animStr + "Button",
                             Text = animStr,
@@ -170,12 +112,13 @@ public partial class ThingEditor : Control {
                             Theme = this.theme
                         };
                         this.animationList.AddChild(animLabel);
-                        animLabel.Pressed += () => defPart.DoAnimation(animLibStr, animStr);
+                        animLabel.Pressed += () => part.DoAnimation(libStr, animStr);
                     }
                 }
             }
-            PrepareParts(part, dupeTracker);
+
         }
+
     }
 
     private static void KillTween(Tween t) {
@@ -210,33 +153,30 @@ public partial class ThingEditor : Control {
         // For now only allow duplication with singleton parts
         if (p != null && p.parentPart == null && p.connectedParts.Count == 0) {
 
-            Part dupe = p.scene.Instantiate<Part>();
+            //Part dupe = p.scene.Instantiate<Part>();
 
-            string name = p.Name.ToString();
-            string originalName = name.Contains('_') ? name[..name.RFind("_")] : name;
+            //string name = p.Name.ToString();
+            //string originalName = name.Contains('_') ? name[..name.RFind("_")] : name;
 
-            // THIS SHOULD NEVER FAIL EEEEEEEVVVVVEEEEEEEEER
-            this.dupeTracker[p.UID].Add(dupe);
+            //// THIS SHOULD NEVER FAIL EEEEEEEVVVVVEEEEEEEEER
+            //this.dupeTracker[p.UID].Add(dupe);
 
-            dupe.Name = originalName + "_" + this.dupeTracker[p.UID].Count;
-            dupe.thing = p.thing;
-            dupe.space = this.worldRoot;
-            dupe.editor = this;
-            dupe.partName = p.partName;
-            dupe.UID = p.UID;
-            dupe.scene = p.scene;
-            Print(dupe.Name);
+            //dupe.Name = originalName + "_" + this.dupeTracker[p.UID].Count;
+            //dupe.thing = p.thing;
+            //dupe.editor = this;
+            //dupe.UID = p.UID;
+            //Print(dupe.Name);
             
-            //dupe.parentPart = null;
-            this.worldRoot.AddChild(dupe);
-            dupe.GlobalTransform = p.GlobalTransform;
-            dupe.ToggleEditorMode();
-            if (p is DeformingPart dp) {
-                AnimationPlayer da = dp.animationPlayer.Duplicate() as AnimationPlayer;
-                dupe.AddChild(da);
-                (dupe as DeformingPart).animationPlayer = da;
-            }
-            dupe.Unselected();
+            ////dupe.parentPart = null;
+            //this.worldRoot.AddChild(dupe);
+            //dupe.GlobalTransform = p.GlobalTransform;
+            //dupe.ToggleEditorMode();
+            //if (p is DeformingPart dp) {
+            //    AnimationPlayer da = dp.animationPlayer.Duplicate() as AnimationPlayer;
+            //    dupe.AddChild(da);
+            //    (dupe as DeformingPart).animationPlayer = da;
+            //}
+            //dupe.Unselected();
 
         }
     }

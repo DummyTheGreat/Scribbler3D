@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://cw24b7dgamtel"
-path="res://.godot/imported/Pigeon_Tail_Model.glb-5bf48a49473c3f7db02c8a45b6d928d2.scn"
+uid="uid://bvgyegrey741c"
+path="res://.godot/imported/Rocket_Wing_Model.glb-e9291b32b9212e55912a2f3f1d565e17.scn"
 
 [deps]
 
-source_file="res://assets/Models/Pigeon/Pigeon_Tail_Model.glb"
-dest_files=["res://.godot/imported/Pigeon_Tail_Model.glb-5bf48a49473c3f7db02c8a45b6d928d2.scn"]
+source_file="res://assets/Models/Rocket/Rocket_Wing_Model.glb"
+dest_files=["res://.godot/imported/Rocket_Wing_Model.glb-e9291b32b9212e55912a2f3f1d565e17.scn"]
 
 [params]
 

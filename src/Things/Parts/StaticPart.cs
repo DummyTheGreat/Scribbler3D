@@ -19,7 +19,7 @@ using System.Linq;
 public partial class StaticPart : Part
 {
     public override MeshInstance3D GetSkinMesh() {
-        return (MeshInstance3D)this.GetChildren().First(x => x.Name.ToString().EndsWith("Mesh") && x is MeshInstance3D);
+        return (MeshInstance3D)this.GetChildren().First(x => x.Name.ToString().StartsWith("Skin") && x is MeshInstance3D);
     }
 
     // Receiver

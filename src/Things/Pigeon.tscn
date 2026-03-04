@@ -1,45 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://brmu2d6vxxne0"]
+[gd_scene load_steps=3 format=3 uid="uid://uyc7mmcmsuln"]
 
-[ext_resource type="PackedScene" uid="uid://bfeaki581wrmy" path="res://assets/Models/Pigeon_Model.glb" id="1_ryern"]
+[ext_resource type="Script" uid="uid://xhd011b3vuff" path="res://src/Things/Thing.cs" id="1_8natu"]
+[ext_resource type="Resource" uid="uid://c85wpjr3pu77i" path="res://src/Things/Data/Resources/Pigeon.tres" id="2_i8fsp"]
 
-[node name="Pigeon" node_paths=PackedStringArray("parts") instance=ExtResource("1_ryern")]
-parts = [NodePath("PigeonBodyPart"), NodePath("PigeonBodyPart/Skeleton3D/NeckSocket_Rec/PigeonHeadPart"), NodePath("PigeonBodyPart/Skeleton3D/WingSocket_Rec_R/PigeonWingRightPart"), NodePath("PigeonBodyPart/Skeleton3D/WingSocket_Rec_L/PigeonWingLeftPart"), NodePath("PigeonBodyPart/Skeleton3D/LowerSpineSocket_Rec/PigeonTailPart"), NodePath("PigeonBodyPart/Skeleton3D/LegSocket_Rec_L/PigeonLegLeftPart"), NodePath("PigeonBodyPart/Skeleton3D/LegSocket_Rec_R/PigeonLegRightPart")]
-
-[node name="PigeonBodyPart" parent="." index="0"]
-connectedParts = [NodePath("Skeleton3D/NeckSocket_Rec/PigeonHeadPart"), NodePath("Skeleton3D/WingSocket_Rec_R/PigeonWingRightPart"), NodePath("Skeleton3D/WingSocket_Rec_L/PigeonWingLeftPart"), NodePath("Skeleton3D/LowerSpineSocket_Rec/PigeonTailPart"), NodePath("Skeleton3D/LegSocket_Rec_L/PigeonLegLeftPart"), NodePath("Skeleton3D/LegSocket_Rec_R/PigeonLegRightPart")]
-
-[node name="PigeonHeadPart" parent="PigeonBodyPart/Skeleton3D/NeckSocket_Rec" index="1"]
-transform = Transform3D(0.9576907, 4.5634764e-08, 2.2921131e-07, 1.694647e-08, 1.0000002, -4.9947495e-08, -8.7457863e-10, 2.2351756e-08, 0.9576911, 0.09767318, 0.61930895, 1.8789595e-07)
-parentPart = NodePath("../../..")
-connectedParts = []
-depth = 1
-
-[node name="PigeonWingRightPart" parent="PigeonBodyPart/Skeleton3D/WingSocket_Rec_R" index="1"]
-transform = Transform3D(1.0075561, 0.0044391444, -0.003146848, 0.0012057746, 1.0033714, -0.00012461568, 0.0027233479, -0.0003593764, 1.0000131, -1.5351622, -0.7145057, 0.46358305)
-parentPart = NodePath("../../..")
-connectedParts = []
-depth = 1
-
-[node name="PigeonWingLeftPart" parent="PigeonBodyPart/Skeleton3D/WingSocket_Rec_L" index="1"]
-transform = Transform3D(1.0000746, -0.0010774402, -7.680623e-05, 4.4308646e-05, 1.0008376, 0.00012494254, 3.0025483e-06, -5.550388e-06, 1.0000042, -1.5509953, -0.7130034, -0.4593374)
-parentPart = NodePath("../../..")
-connectedParts = []
-depth = 1
-
-[node name="PigeonTailPart" parent="PigeonBodyPart/Skeleton3D/LowerSpineSocket_Rec" index="1"]
-transform = Transform3D(0.99999994, 0.00031793868, 2.0540703e-07, -0.00031431034, 0.99997634, -1.8146622e-08, -1.16024516e-07, 7.771212e-08, 0.9999999, -2.2324324, -0.072485685, 1.4745446e-07)
-parentPart = NodePath("../../..")
-connectedParts = []
-depth = 1
-
-[node name="PigeonLegLeftPart" parent="PigeonBodyPart/Skeleton3D/LegSocket_Rec_L" index="1"]
-transform = Transform3D(0.9969466, -0.000998007, 5.2046045e-05, 0.00024514613, 0.99982285, -0.00010957009, 0.0010344472, 0.00024926302, 0.99990463, 0.09463805, -0.6523688, -0.47030815)
-parentPart = NodePath("../../..")
-connectedParts = []
-depth = 1
-
-[node name="PigeonLegRightPart" parent="PigeonBodyPart/Skeleton3D/LegSocket_Rec_R" index="1"]
-transform = Transform3D(0.99694717, -0.0009974428, -5.2250925e-05, 0.00024479648, 0.99982256, 0.00010861834, -0.0010340144, -0.00024874523, 0.9999031, 0.09467399, -0.65237206, 0.4703205)
-parentPart = NodePath("../../..")
-connectedParts = []
-depth = 1
+[node name="Pigeon" type="Node3D"]
+script = ExtResource("1_8natu")
+thingData = ExtResource("2_i8fsp")

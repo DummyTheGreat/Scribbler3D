@@ -10,18 +10,19 @@ public partial class Part : Node3D {
 
     // Only includes connectors of different thing type from the part's thing
     [Export]
-    public Godot.Collections.Array<NodePath> connectedParts;
+    public Godot.Collections.Array<NodePath> connectedParts = [];
 
     [Export]
     public int depth;
 
     public StringName UID;
+    public NodePath pathToReceiver;
+    public AnimationPlayer animationPlayer;
 
     private Material selectionGlowMaterial;
 
     // This doesn't change until the part a new Thing is CREATED, not just when the part connects to another
     public Thing thing;
-    public string partName;
 
     public bool joining;
     public bool receiving;
@@ -36,9 +37,7 @@ public partial class Part : Node3D {
     private Transform3D destTransform;
     private Transform3D startTransform;
 
-    public ThingEditorSpace space;
     public ThingEditor editor;
-    public PackedScene scene;
 
 
     private static Basis MakeRightHanded(Basis b) {
@@ -142,7 +141,7 @@ public partial class Part : Node3D {
     // Receiver
     public virtual void DetachPart(Part connector) {
         NodePath path = this.GetPathTo(connector);
-        connector.Reparent(this.space);
+        connector.Reparent(this.editor.GetEditorSpace());
         connector.parentPart = null;
         this.connectedParts.Remove(path);
     }
@@ -175,27 +174,38 @@ public partial class Part : Node3D {
             receiverPart.CallDeferred(nameof(DetachPart), this);
         }
     }
+    public virtual void DoAnimation(StringName animationLibrary, StringName animation) { }
 
-    public Part PackPart() {
-        this.Owner = null;
-        this.parentPart = null;
-        this.connectedParts = [];
-        static void TransferTreeOwnership(Node node, Node newOwner) {
-            foreach (Node child in node.GetChildren()) {
-                child.Owner = newOwner;
-                TransferTreeOwnership(child, newOwner);
+    public virtual void MergeAnimations(Part connector) { }
+
+    public void PreparePart(AlignmentPlane connector, AlignmentPlane receiver, Node parent, Thing partThing, ThingEditor partEditor) {
+        this.thing = partThing;
+        this.editor = partEditor;
+        string partName = this.GetMeta("PartData").AsGodotDictionary<string, string>()["PartName"];
+        string thingName = this.GetMeta("PartData").AsGodotDictionary<string, string>()["ThingName"];
+        this.UID = thingName + partName;
+        partEditor.AddToTracker(this);
+
+        this.animationPlayer = this.GetChildren().OfType<AnimationPlayer>().FirstOrDefault();
+
+        if (parent is Part partParent) {
+            receiver.AddSibling(this);
+            this.parentPart = this.GetPathTo(parent);
+            partParent.connectedParts.Add(parent.GetPathTo(this));
+            this.depth = partParent.depth + 1;
+            if (this.animationPlayer != null) {
+                partParent.MergeAnimations(this);
             }
         }
-        TransferTreeOwnership(this, this);
-        PackedScene partScene = new();
-        partScene.Pack(this);
-        Part newPart = partScene.Instantiate<Part>();
-        newPart.scene = partScene;
-        // This should be safe...
-        this.QueueFree();
-        return newPart;
+        else {
+            parent.AddChild(this);
+            this.depth = 0;
+        }
+        ToggleEditorMode();
+        if (receiver != null) {
+            this.GlobalTransform = CalculateJoinTransform(connector, receiver, this.GlobalTransform);
+        }
     }
-
 
     public virtual void AddPartCollider(PartCollider collider, MeshInstance3D quad) { }
 

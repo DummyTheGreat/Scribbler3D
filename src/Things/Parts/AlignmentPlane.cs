@@ -124,7 +124,7 @@ public partial class AlignmentPlane : MeshInstance3D {
         Godot.Collections.Array arrays = this.Mesh.SurfaceGetArrays(0);
         this.vertices = (Vector3[])arrays[(int)Mesh.ArrayType.Vertex];
         this.vertexIndices = (int[])arrays[(int)Mesh.ArrayType.Index];
-        this.frontMarker = this.GetChildren().OfType<Node3D>().Where(x => x.Name.ToString().EndsWith("Front")).FirstOrDefault();
+        this.frontMarker = this.GetChild<Node3D>(0);
         ComputeLocalNormalFromSurface();
         ComputeLocalBasis();
         ComputeMaxDimensionExtents();

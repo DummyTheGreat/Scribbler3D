@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bfeaki581wrmy"
-path="res://.godot/imported/Pigeon_Model.glb-e687f28bf384a0d537f4d5b84397c633.scn"
+uid="uid://dylgpr2hqdubx"
+path="res://.godot/imported/Rocket_Booster_Model.glb-632af3e376d5f640bb1488093c9ed2a2.scn"
 
 [deps]
 
-source_file="res://assets/Models/Pigeon_Model.glb"
-dest_files=["res://.godot/imported/Pigeon_Model.glb-e687f28bf384a0d537f4d5b84397c633.scn"]
+source_file="res://assets/Models/Rocket/Rocket_Booster_Model.glb"
+dest_files=["res://.godot/imported/Rocket_Booster_Model.glb-632af3e376d5f640bb1488093c9ed2a2.scn"]
 
 [params]
 
@@ -33,7 +33,7 @@ animation/fps=30
 animation/trimming=false
 animation/remove_immutable_tracks=true
 animation/import_rest_as_RESET=false
-import_script/path="uid://b2wbj2twu5xt6"
+import_script/path="uid://vxebxbsl5lbq"
 materials/extract=0
 materials/extract_format=0
 materials/extract_path=""

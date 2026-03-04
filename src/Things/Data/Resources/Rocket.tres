@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="ThingData" load_steps=11 format=3 uid="uid://jx0uky4oqaji"]
+
+[ext_resource type="Script" uid="uid://gmralgfdyysn" path="res://src/Things/Parts/Data/PartRequirement.gd" id="1_aprfp"]
+[ext_resource type="PackedScene" uid="uid://6xfruotw5y86" path="res://assets/Models/Rocket/Rocket_Body_Model.glb" id="2_ejukw"]
+[ext_resource type="Script" uid="uid://db8y68k8u3qya" path="res://src/Things/Data/ThingData.gd" id="2_nshb1"]
+[ext_resource type="PackedScene" uid="uid://vlk4tvaa07yi" path="res://assets/Models/Rocket/Rocket_Nozzle_Model.glb" id="3_6pbms"]
+[ext_resource type="PackedScene" uid="uid://dylgpr2hqdubx" path="res://assets/Models/Rocket/Rocket_Booster_Model.glb" id="4_8gvki"]
+[ext_resource type="PackedScene" uid="uid://bvgyegrey741c" path="res://assets/Models/Rocket/Rocket_Wing_Model.glb" id="5_gylkn"]
+
+[sub_resource type="Resource" id="Resource_8gvki"]
+script = ExtResource("1_aprfp")
+partScene = ExtResource("2_ejukw")
+amount = 1
+metadata/_custom_type_script = "uid://gmralgfdyysn"
+
+[sub_resource type="Resource" id="Resource_gylkn"]
+script = ExtResource("1_aprfp")
+partScene = ExtResource("3_6pbms")
+amount = 1
+receiver = Array[NodePath]([NodePath("Receiver_Rocket_Nozzle_1")])
+metadata/_custom_type_script = "uid://gmralgfdyysn"
+
+[sub_resource type="Resource" id="Resource_3156e"]
+script = ExtResource("1_aprfp")
+partScene = ExtResource("4_8gvki")
+amount = 1
+receiver = Array[NodePath]([NodePath("Receiver_Rocket_Booster_1")])
+metadata/_custom_type_script = "uid://gmralgfdyysn"
+
+[sub_resource type="Resource" id="Resource_ge6x3"]
+script = ExtResource("1_aprfp")
+partScene = ExtResource("5_gylkn")
+amount = 4
+receiver = Array[NodePath]([NodePath("Receiver_Rocket_Wing_1_Front"), NodePath("Receiver_Rocket_Wing_1_Left"), NodePath("Receiver_Rocket_Wing_1_Rear"), NodePath("Receiver_Rocket_Wing_1_Right")])
+metadata/_custom_type_script = "uid://gmralgfdyysn"
+
+[resource]
+script = ExtResource("2_nshb1")
+parts = Array[ExtResource("1_aprfp")]([SubResource("Resource_8gvki"), SubResource("Resource_gylkn"), SubResource("Resource_3156e"), SubResource("Resource_ge6x3")])
+metadata/_custom_type_script = "uid://db8y68k8u3qya"

@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="ThingData" load_steps=13 format=3 uid="uid://c85wpjr3pu77i"]
+
+[ext_resource type="Script" uid="uid://gmralgfdyysn" path="res://src/Things/Parts/Data/PartRequirement.gd" id="1_m7gqy"]
+[ext_resource type="PackedScene" uid="uid://bw73fdjwjis2w" path="res://assets/Models/Pigeon/Pigeon_Body_Model.glb" id="2_2mk5h"]
+[ext_resource type="Script" uid="uid://db8y68k8u3qya" path="res://src/Things/Data/ThingData.gd" id="2_4kcq3"]
+[ext_resource type="PackedScene" uid="uid://c4c5cuox6htwb" path="res://assets/Models/Pigeon/Pigeon_Head_Model.glb" id="3_x1gcf"]
+[ext_resource type="PackedScene" uid="uid://cw24b7dgamtel" path="res://assets/Models/Pigeon/Pigeon_Tail_Model.glb" id="4_vjpee"]
+[ext_resource type="PackedScene" uid="uid://nttujmemwaof" path="res://assets/Models/Pigeon/Pigeon_Leg_Model.glb" id="5_p7dul"]
+[ext_resource type="PackedScene" uid="uid://da8pm83827ixx" path="res://assets/Models/Pigeon/Pigeon_Wing_Model.glb" id="6_sxeqv"]
+
+[sub_resource type="Resource" id="Resource_m7gqy"]
+script = ExtResource("1_m7gqy")
+partScene = ExtResource("2_2mk5h")
+amount = 1
+metadata/_custom_type_script = "uid://gmralgfdyysn"
+
+[sub_resource type="Resource" id="Resource_8y6lx"]
+script = ExtResource("1_m7gqy")
+partScene = ExtResource("3_x1gcf")
+amount = 1
+receiver = Array[NodePath]([NodePath("Skeleton3D/NeckSocket_Rec/Receiver_Pigeon_Head_1")])
+metadata/_custom_type_script = "uid://gmralgfdyysn"
+
+[sub_resource type="Resource" id="Resource_ntm1y"]
+script = ExtResource("1_m7gqy")
+partScene = ExtResource("4_vjpee")
+amount = 1
+receiver = Array[NodePath]([NodePath("Skeleton3D/LowerSpineSocket_Rec/Receiver_Pigeon_Tail_1")])
+metadata/_custom_type_script = "uid://gmralgfdyysn"
+
+[sub_resource type="Resource" id="Resource_r3fin"]
+script = ExtResource("1_m7gqy")
+partScene = ExtResource("5_p7dul")
+amount = 2
+receiver = Array[NodePath]([NodePath("Skeleton3D/LegSocket_Rec_L/Receiver_Pigeon_Leg_1_Left"), NodePath("Skeleton3D/LegSocket_Rec_R/Receiver_Pigeon_Leg_1_Right")])
+metadata/_custom_type_script = "uid://gmralgfdyysn"
+
+[sub_resource type="Resource" id="Resource_p82lb"]
+script = ExtResource("1_m7gqy")
+partScene = ExtResource("6_sxeqv")
+amount = 2
+receiver = Array[NodePath]([NodePath("Skeleton3D/WingSocket_Rec_L/Receiver_Pigeon_Wing_1_Left"), NodePath("Skeleton3D/WingSocket_Rec_R/Receiver_Pigeon_Wing_1_Right")])
+metadata/_custom_type_script = "uid://gmralgfdyysn"
+
+[resource]
+script = ExtResource("2_4kcq3")
+parts = Array[ExtResource("1_m7gqy")]([SubResource("Resource_m7gqy"), SubResource("Resource_8y6lx"), SubResource("Resource_ntm1y"), SubResource("Resource_r3fin"), SubResource("Resource_p82lb")])
+metadata/_custom_type_script = "uid://db8y68k8u3qya"

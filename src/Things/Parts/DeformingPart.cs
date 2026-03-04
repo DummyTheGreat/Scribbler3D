@@ -25,9 +25,8 @@ using static Godot.GD;
 public partial class DeformingPart : Part {
 
     private Skeleton3D skeleton;
-    public AnimationPlayer animationPlayer;
 
-    public void DoAnimation(StringName animationLibrary, StringName animation) {
+    public override void DoAnimation(StringName animationLibrary, StringName animation) {
         string name = animationLibrary + "/" + animation;
         if (this.animationPlayer.IsPlaying() && this.animationPlayer.CurrentAnimation.Equals(name)) {
             this.animationPlayer.Stop();
@@ -41,13 +40,9 @@ public partial class DeformingPart : Part {
         return this.skeleton.GetChildren().OfType<MeshInstance3D>().FirstOrDefault();
     }
 
-    // Receiver
-    public override void AttachPart(Part connector) {
-        base.AttachPart(connector);
-        BoneAttachment3D receiverSocket = connector.activeCollider.GetBoundCollider().GetParentOrNull<BoneAttachment3D>();
-        connector.Reparent(receiverSocket);
-
+    public override void MergeAnimations(Part connector) {
         string conLibName = connector.UID + "Lib";
+
         AnimationLibrary matchingLibrary = this.editor.GetPartAnimationLibrary(connector.UID, conLibName, connector);
 
         if (connector is DeformingPart defConnector) {
@@ -100,12 +95,13 @@ public partial class DeformingPart : Part {
                             conAnim.TrackSetPath(i, oldPath);
                         }
 
+                        newRecAnim.LoopMode = Animation.LoopModeEnum.Linear;
                         newRecAnim.SetMeta("AnimationGroup", conAnim.GetMeta("AnimationGroup"));
                         recLib.AddAnimation(this.thing.Name + conAnim.GetMeta("AnimationGroup"), newRecAnim);
                     }
 
                     // All duplicated parts share the same library. Only delete animations if this is the last remaining copy referencing the library
-                    if (matchingLibrary ==  null) {
+                    if (matchingLibrary == null) {
                         Print("Delete Animtion: ", conAnimStr);
                         conLib.RemoveAnimation(conAnimStr);
                     }
@@ -122,6 +118,14 @@ public partial class DeformingPart : Part {
             defConnector.animationPlayer.QueueFree();
             defConnector.animationPlayer = null;
         }
+    }
+
+    // Receiver
+    public override void AttachPart(Part connector) {
+        base.AttachPart(connector);
+        BoneAttachment3D receiverSocket = connector.activeCollider.GetBoundCollider().GetParentOrNull<BoneAttachment3D>();
+        connector.Reparent(receiverSocket);
+        MergeAnimations(connector);
     }
 
     // Receiver = this
@@ -166,7 +170,9 @@ public partial class DeformingPart : Part {
                         }
                     }
                     if (newConnectorAnim.GetTrackCount() > 0 && matchingLibrary == null) {
-                        string conAnimName = connector.thing.Name + connector.partName + (string)receiverAnim.GetMeta("AnimationGroup");
+                        string partName = connector.GetMeta("PartData").AsGodotDictionary<string, string>()["PartName"];
+                        string thingName = connector.GetMeta("PartData").AsGodotDictionary<string, string>()["ThingName"];
+                        string conAnimName = thingName + partName + (string)receiverAnim.GetMeta("AnimationGroup");
                         newConnectorAnim.SetMeta("AnimationGroup", receiverAnim.GetMeta("AnimationGroup"));
                         connectorAnimator.GetAnimationLibrary(conLibName).AddAnimation(conAnimName, newConnectorAnim);
 

@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://cw24b7dgamtel"
-path="res://.godot/imported/Pigeon_Tail_Model.glb-5bf48a49473c3f7db02c8a45b6d928d2.scn"
+uid="uid://bvpidfdmcbsa5"
+path="res://.godot/imported/Pigeon_Leg_Mirror_Model.glb-f718afb02291037a2edebb6f7f5cb337.scn"
 
 [deps]
 
-source_file="res://assets/Models/Pigeon/Pigeon_Tail_Model.glb"
-dest_files=["res://.godot/imported/Pigeon_Tail_Model.glb-5bf48a49473c3f7db02c8a45b6d928d2.scn"]
+source_file="res://assets/Models/Pigeon/Mirrors/Pigeon_Leg_Mirror_Model.glb"
+dest_files=["res://.godot/imported/Pigeon_Leg_Mirror_Model.glb-f718afb02291037a2edebb6f7f5cb337.scn"]
 
 [params]
 
