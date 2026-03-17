@@ -31,7 +31,7 @@ anchor_bottom = 0.9
 grow_vertical = 2
 select_mode = 2
 auto_height = true
-item_count = 2
+item_count = 3
 max_columns = 2
 icon_mode = 0
 fixed_icon_size = Vector2i(100, 100)
@@ -39,6 +39,8 @@ item_0/text = "Pigeon"
 item_0/icon = ExtResource("1_nx73a")
 item_1/text = "Rocket"
 item_1/icon = ExtResource("1_nx73a")
+item_2/text = "Human"
+item_2/icon = ExtResource("1_nx73a")
 
 [node name="ShowAnimations" type="Button" parent="UI"]
 z_index = 2
@@ -103,6 +105,11 @@ size_flags_horizontal = 3
 text = "Rotate
 Counter-
 Clockwise"
+
+[node name="ToggleQuadList" type="Button" parent="UI/EditTools"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Toggle Quad LIst"
 
 [node name="Editor Window" type="SubViewportContainer" parent="."]
 layout_mode = 1

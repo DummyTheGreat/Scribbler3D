@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="ThingData" load_steps=13 format=3 uid="uid://cwyr2jwvol674"]
+
+[ext_resource type="Script" uid="uid://gmralgfdyysn" path="res://src/Things/Parts/Data/PartRequirement.gd" id="1_sk4qm"]
+[ext_resource type="PackedScene" uid="uid://rkg806qocf4t" path="res://assets/Models/Human/Human_Arm_Model.glb" id="2_7bbrw"]
+[ext_resource type="PackedScene" uid="uid://ftv3idomywt6" path="res://assets/Models/Human/Human_Head_Model.glb" id="2_8xawg"]
+[ext_resource type="Script" uid="uid://db8y68k8u3qya" path="res://src/Things/Data/ThingData.gd" id="2_yf3cj"]
+[ext_resource type="PackedScene" uid="uid://cxabio1wquigl" path="res://assets/Models/Human/Human_Pelvis_Model.glb" id="3_0oky4"]
+[ext_resource type="PackedScene" uid="uid://bi1wsn1r0s402" path="res://assets/Models/Human/Human_Torso_Model.glb" id="5_f6gg6"]
+[ext_resource type="PackedScene" uid="uid://b1f4ffviebkx1" path="res://assets/Models/Human/Human_Leg_Model.glb" id="6_0oky4"]
+
+[sub_resource type="Resource" id="Resource_8xawg"]
+script = ExtResource("1_sk4qm")
+partScene = ExtResource("2_8xawg")
+amount = 1
+receiver = Array[NodePath]([NodePath("Skeleton3D/NeckSocket_Rec/Receiver_Human_Head_1")])
+
+[sub_resource type="Resource" id="Resource_0oky4"]
+script = ExtResource("1_sk4qm")
+partScene = ExtResource("3_0oky4")
+amount = 1
+receiver = Array[NodePath]([NodePath("Skeleton3D/PelvisSocket_Rec/Receiver_Human_Pelvis_1")])
+
+[sub_resource type="Resource" id="Resource_f6gg6"]
+script = ExtResource("1_sk4qm")
+partScene = ExtResource("2_7bbrw")
+amount = 2
+receiver = Array[NodePath]([NodePath("Skeleton3D/ArmSocket_Rec_L/Receiver_Human_Arm_1_Left"), NodePath("Skeleton3D/ArmSocket_Rec_R/Receiver_Human_Arm_1_Right")])
+
+[sub_resource type="Resource" id="Resource_3fmcg"]
+script = ExtResource("1_sk4qm")
+partScene = ExtResource("5_f6gg6")
+amount = 1
+
+[sub_resource type="Resource" id="Resource_oehp4"]
+script = ExtResource("1_sk4qm")
+partScene = ExtResource("6_0oky4")
+amount = 2
+receiver = Array[NodePath]([NodePath("Skeleton3D/LegSocket_Rec_L/Receiver_Human_Leg_1_Left"), NodePath("Skeleton3D/LegSocket_Rec_R/Receiver_Human_Leg_1_Right")])
+
+[resource]
+script = ExtResource("2_yf3cj")
+parts = Array[ExtResource("1_sk4qm")]([SubResource("Resource_8xawg"), SubResource("Resource_0oky4"), SubResource("Resource_f6gg6"), SubResource("Resource_3fmcg"), SubResource("Resource_oehp4")])

@@ -17,6 +17,7 @@ public partial class ThingEditor : Control {
     private Button createNewThing;
     private Button rotateClockwise;
     private Button rotateCounterClockwise;
+    private Button toggleQuadList;
 
     private bool animListActive;
     private Theme theme;
@@ -81,12 +82,19 @@ public partial class ThingEditor : Control {
         }
     }
 
+    public int GetTrackedCount(Part part) {
+        this.dupeTracker.TryGetValue(part.UID, out List<Part> list);
+        if (list == null) { return 0; }
+        return list.Count;
+    }
+
     /** 
      * Signal Function
      * 
      * Triggers on ItemList | MultiSelected
     **/
     private void ThingSelected(long index, bool selected) {
+
         Thing thing = Load<PackedScene>("src/Things/" + this.things.GetItemText((int)index) + ".tscn").Instantiate<Thing>();
         Print(thing.Name);
         thing.Assemble(this.worldRoot, this);
@@ -97,6 +105,7 @@ public partial class ThingEditor : Control {
                 foreach (StringName libStr in part.animationPlayer.GetAnimationLibraryList()) {
                     AnimationLibrary lib = part.animationPlayer.GetAnimationLibrary(libStr);
                     foreach (StringName animStr in lib.GetAnimationList()) {
+                        Print(animStr);
                         if (lib.GetAnimationListSize() > 0 &&
                             this.animationList.GetChildCount() == 1 &&
                             this.animationList.GetChild(0).Name == "Default") {
@@ -115,6 +124,11 @@ public partial class ThingEditor : Control {
                         animLabel.Pressed += () => part.DoAnimation(libStr, animStr);
                     }
                 }
+            }
+            else {
+                AnimationPlayer placeholder = new();
+                part.AddChild(placeholder);
+                part.animationPlayer = placeholder;
             }
 
         }
@@ -152,32 +166,22 @@ public partial class ThingEditor : Control {
         Part p = this.worldRoot.selectedPart;
         // For now only allow duplication with singleton parts
         if (p != null && p.parentPart == null && p.connectedParts.Count == 0) {
+            Part dupe = p.duplicateScene.Instantiate<Part>();
+            dupe.PreparePart(null, null, this.worldRoot, p.thing, this, p);
+            dupe.duplicateScene = p.duplicateScene;
+            // TODO: Figure out why Instantiated scene doesn't have motherfucking animations?
+            // Jerry rigged trick but I don't know how tf else to fix this
+            AnimationPlayer dap;
+            if (dupe.animationPlayer != null) {
+                dap = dupe.animationPlayer;
+                dupe.RemoveChild(dap);
+                dap.QueueFree();
+            }
+            dap = (AnimationPlayer)p.animationPlayer.Duplicate();
+            dupe.AddChild(dap);
+            dupe.animationPlayer = dap;
 
-            //Part dupe = p.scene.Instantiate<Part>();
-
-            //string name = p.Name.ToString();
-            //string originalName = name.Contains('_') ? name[..name.RFind("_")] : name;
-
-            //// THIS SHOULD NEVER FAIL EEEEEEEVVVVVEEEEEEEEER
-            //this.dupeTracker[p.UID].Add(dupe);
-
-            //dupe.Name = originalName + "_" + this.dupeTracker[p.UID].Count;
-            //dupe.thing = p.thing;
-            //dupe.editor = this;
-            //dupe.UID = p.UID;
-            //Print(dupe.Name);
-            
-            ////dupe.parentPart = null;
-            //this.worldRoot.AddChild(dupe);
-            //dupe.GlobalTransform = p.GlobalTransform;
-            //dupe.ToggleEditorMode();
-            //if (p is DeformingPart dp) {
-            //    AnimationPlayer da = dp.animationPlayer.Duplicate() as AnimationPlayer;
-            //    dupe.AddChild(da);
-            //    (dupe as DeformingPart).animationPlayer = da;
-            //}
-            //dupe.Unselected();
-
+            dupe.GlobalTransform = p.GlobalTransform;
         }
     }
 
@@ -191,7 +195,6 @@ public partial class ThingEditor : Control {
             this.worldRoot.RemoveChild(p);
 
             // THIS SHOULD NEVER FAIL EEEEEEEVVVVVEEEEEEEEER
-            // (Parts are automatically added to tracker when subdivided from Thing)
             this.dupeTracker[p.UID].Remove(p);
             p.QueueFree();
         }
@@ -200,6 +203,60 @@ public partial class ThingEditor : Control {
     // Signal when "Create New Thing" is pressed
     private void CreateNewThing() {
 
+    }
+
+    private void ToggleQuadList() {
+        Part p = this.worldRoot.selectedPart;
+        if (p != null) {
+
+            if (p.bindingQuads.Count == 1 && p.bindingQuads[0].GetMeta("MeshType").AsString() == "Connector") {
+                Print("Cannot modify singleton connector");
+                return;
+            }
+
+            QuadList list = Load<PackedScene>("res://src/UI/QuadList.tscn").Instantiate<QuadList>();
+            PackedScene quadItemScene = Load<PackedScene>("res://src/UI/QuadItem.tscn");
+            foreach (AlignmentPlane plane in p.bindingQuads) {
+                string partName = plane.GetMeta("PartName").AsString();
+                string meshType = plane.GetMeta("MeshType").AsString();
+
+                Button quadItem = quadItemScene.Instantiate<Button>();
+                quadItem.Pressed += () => FlipQuad(meshType, plane);
+                Node container = quadItem.GetChild(0);
+                container.GetChild<Label>(0).Text = partName;
+                container.GetChild<Label>(1).Text = meshType;
+                list.GetChild(0).AddChild(quadItem);
+            }
+
+            list.Visible = false;
+            Camera3D camera = this.worldRoot.GetViewport().GetCamera3D();
+            
+            Vector2 pos = camera.UnprojectPosition(p.GlobalPosition);
+            this.worldRoot.AddChild(list);
+            list.Position = pos;
+            list.Visible = true;
+        }
+    }
+
+    private void FlipQuad(string meshType, AlignmentPlane plane) {
+        //if (this.worldRoot.selectedPart is DeformingPart defPart) {
+        //    MeshInstance3D skin = this.worldRoot.selectedPart.GetSkinMesh();
+        //    skin.Skin = null;
+
+        //    BoneAttachment3D socket = plane.GetParentOrNull<BoneAttachment3D>();
+        //    if (socket == null) { return; }
+        //    int rootIndex = defPart.skeleton.GetParentlessBones().First();
+        //    int socketIndex = socket.BoneIdx;
+        //    int socketParent = defPart.skeleton.GetBoneParent(socketIndex);
+        //    // Make socket the new root and move the old root 
+        //    defPart.skeleton.UnparentBoneAndRest(socketIndex);
+        //    while (socketParent != rootIndex) {
+        //        int current = socketParent;
+        //        socketParent = defPart.skeleton.GetBoneParent(socketParent);
+        //        defPart.skeleton.UnparentBoneAndRest(current);
+        //    }
+
+        //}
     }
 
     private void RotatePart(float degrees) {
@@ -237,16 +294,13 @@ public partial class ThingEditor : Control {
         this.rotateClockwise.Pressed += () => RotatePart(90);
         this.rotateCounterClockwise = rotationButtons.GetChild<Button>(1);
         this.rotateCounterClockwise.Pressed += () => RotatePart(-90);
+        this.toggleQuadList = this.toolList.GetChild<Button>(4);
+        this.toggleQuadList.Pressed += ToggleQuadList;
 
         this.worldRoot = GetChild<SubViewportContainer>(1).GetChild<SubViewport>(0).GetChild<ThingEditorSpace>(0);
         this.animListActive = false;
         this.theme = Load<Theme>("src/UI/Themes/ThingEditor.tres");
 
         this.dupeTracker = [];
-    }
-
-    public override void _Process(double delta) {
-        //foreach (Thing thing in selectedThings) {
-        //    thing.Position
     }
 }

@@ -1,23 +1,22 @@
 using Godot;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using static Godot.GD;
 
 public partial class Part : Node3D {
 
-    [Export]
+    [Signal]
+    public delegate void PartPreparedEventHandler();
+
     public NodePath parentPart;
-
-    // Only includes connectors of different thing type from the part's thing
-    [Export]
     public Godot.Collections.Array<NodePath> connectedParts = [];
-
-    [Export]
     public int depth;
 
     public StringName UID;
     public NodePath pathToReceiver;
     public AnimationPlayer animationPlayer;
+    public PackedScene duplicateScene;
 
     private Material selectionGlowMaterial;
 
@@ -38,7 +37,6 @@ public partial class Part : Node3D {
     private Transform3D startTransform;
 
     public ThingEditor editor;
-
 
     private static Basis MakeRightHanded(Basis b) {
         //b = b.Orthonormalized();
@@ -171,6 +169,12 @@ public partial class Part : Node3D {
     public virtual void MoveSelected() {
         if (this.activeCollider != null && this.GetParent() is not Thing) {
             Part receiverPart = this.activeCollider.GetBoundCollider().associatedPart;
+            // CHECK IF THE PART HAS A CONNECTOR
+            Print("MESMM: ", receiverPart.activeCollider);
+
+            while (receiverPart.activeCollider != null) {
+                receiverPart = receiverPart.activeCollider.GetBoundCollider().associatedPart;
+            }
             receiverPart.CallDeferred(nameof(DetachPart), this);
         }
     }
@@ -178,33 +182,46 @@ public partial class Part : Node3D {
 
     public virtual void MergeAnimations(Part connector) { }
 
-    public void PreparePart(AlignmentPlane connector, AlignmentPlane receiver, Node parent, Thing partThing, ThingEditor partEditor) {
+    public void PreparePart(AlignmentPlane connector, AlignmentPlane receiver, Node parent, Thing partThing, ThingEditor partEditor, Part dupe) {
         this.thing = partThing;
         this.editor = partEditor;
-        string partName = this.GetMeta("PartData").AsGodotDictionary<string, string>()["PartName"];
-        string thingName = this.GetMeta("PartData").AsGodotDictionary<string, string>()["ThingName"];
-        this.UID = thingName + partName;
+        string partName = this.GetMeta("PartName").AsString();
+        string thingName = this.GetMeta("ThingName").AsString();
+        bool isMirror = this.GetMeta("IsMirror").AsBool();
+        this.UID = thingName + partName + (isMirror ? "Mirror" : "");
+
+        int trackedCount = partEditor.GetTrackedCount(this);
+        this.SetMeta("VariantNumber", this.GetMeta("VariantNumber").AsInt32() + 1);
+        this.Name = "Part_" + thingName + "_" + partName + "_" + (trackedCount + 1).ToString() + (isMirror ? "_Mirror" : "");
+
         partEditor.AddToTracker(this);
 
         this.animationPlayer = this.GetChildren().OfType<AnimationPlayer>().FirstOrDefault();
-
+        Print(this.animationPlayer, " ", this.Name);
         if (parent is Part partParent) {
             receiver.AddSibling(this);
             this.parentPart = this.GetPathTo(parent);
             partParent.connectedParts.Add(parent.GetPathTo(this));
             this.depth = partParent.depth + 1;
+            Part topPart = partParent;
+
+            while (topPart.parentPart != null) {
+                topPart = (Part)topPart.GetNode(topPart.parentPart);
+                Print(topPart);
+            }
             if (this.animationPlayer != null) {
-                partParent.MergeAnimations(this);
+                topPart.MergeAnimations(this);
             }
         }
         else {
             parent.AddChild(this);
-            this.depth = 0;
+            this.depth = dupe == null ? 0 : dupe.depth;
         }
         ToggleEditorMode();
         if (receiver != null) {
             this.GlobalTransform = CalculateJoinTransform(connector, receiver, this.GlobalTransform);
         }
+        EmitSignal("PartPrepared");
     }
 
     public virtual void AddPartCollider(PartCollider collider, MeshInstance3D quad) { }
@@ -227,6 +244,7 @@ public partial class Part : Node3D {
 
     // Signal function recieved from PartCollider
     private void PartConnect(PartCollider newCollider) {
+        Print("Part Connect");
         this.activeCollider = newCollider;
     }
 

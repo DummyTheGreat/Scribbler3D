@@ -24,7 +24,7 @@ using static Godot.GD;
  */
 public partial class DeformingPart : Part {
 
-    private Skeleton3D skeleton;
+    public Skeleton3D skeleton;
 
     public override void DoAnimation(StringName animationLibrary, StringName animation) {
         string name = animationLibrary + "/" + animation;
@@ -44,12 +44,12 @@ public partial class DeformingPart : Part {
         string conLibName = connector.UID + "Lib";
 
         AnimationLibrary matchingLibrary = this.editor.GetPartAnimationLibrary(connector.UID, conLibName, connector);
-
+        Print(connector.animationPlayer.GetAnimationList());
         if (connector is DeformingPart defConnector) {
             while (defConnector.animationPlayer.GetAnimationLibraryList().Count > 0) {
                 StringName conLibStr = defConnector.animationPlayer.GetAnimationLibraryList().First();
                 AnimationLibrary conLib = defConnector.animationPlayer.GetAnimationLibrary(conLibStr);
-
+                Print("Library: ", conLibStr);
                 Print("Animations: ", conLib.GetAnimationListSize());
 
                 foreach (StringName conAnimStr in conLib.GetAnimationList()) {
@@ -97,7 +97,7 @@ public partial class DeformingPart : Part {
 
                         newRecAnim.LoopMode = Animation.LoopModeEnum.Linear;
                         newRecAnim.SetMeta("AnimationGroup", conAnim.GetMeta("AnimationGroup"));
-                        recLib.AddAnimation(this.thing.Name + conAnim.GetMeta("AnimationGroup"), newRecAnim);
+                        recLib.AddAnimation(this.UID + conAnim.GetMeta("AnimationGroup"), newRecAnim);
                     }
 
                     // All duplicated parts share the same library. Only delete animations if this is the last remaining copy referencing the library
@@ -138,7 +138,14 @@ public partial class DeformingPart : Part {
                 AnimationLibrary tempConLib = new();
                 string conLibName = connector.UID + "Lib";
                 AnimationLibrary matchingLibrary = this.editor.GetPartAnimationLibrary(connector.UID, conLibName, connector);
+                Print(conLibName);
+                Print("Matching library: ", matchingLibrary);
                 connectorAnimator.AddAnimationLibrary(conLibName, matchingLibrary != null ? matchingLibrary : tempConLib);
+
+                List<string> conChildren = [defConnector.Name.ToString()];
+                foreach (NodePath p in defConnector.connectedParts) {
+                    conChildren.Add(defConnector.GetNode<Part>(p).Name.ToString());
+                }
 
                 foreach (string anim in receiverLib.GetAnimationList()) {
                     Animation receiverAnim = receiverLib.GetAnimation(anim);
@@ -147,35 +154,37 @@ public partial class DeformingPart : Part {
                     while (index < receiverAnim.GetTrackCount()) {
                         NodePath trackPath = receiverAnim.TrackGetPath(index);
                         List<string> pathNames = [.. trackPath.GetConcatenatedNames().Split("/")];
-                        if (pathNames.Contains<string>(defConnector.Name.ToString())) {
+                        bool removal = false;
+                        foreach (string connectorName in conChildren) {
+                            if (pathNames.Contains(connectorName)) {
 
-                            if (matchingLibrary == null) {
-                                // Fix path name for detached part
-                                int partNameIndex = pathNames.IndexOf(defConnector.Name.ToString());
-                                string[] p = pathNames.Select((item, index) => new { Item = item, Index = index })
-                                    .Where(x => x.Index > partNameIndex)
-                                    .Select(x => x.Item)
-                                    .ToArray();
-                                string newPathName = String.Join("/", p);
-                                newPathName += ":" + trackPath.GetConcatenatedSubNames();
+                                if (matchingLibrary == null) {
+                                    // Fix path name for detached part
+                                    int partNameIndex = pathNames.IndexOf(connectorName);
+                                    string[] p = pathNames.Select((item, index) => new { Item = item, Index = index })
+                                        .Where(x => x.Index > partNameIndex)
+                                        .Select(x => x.Item)
+                                        .ToArray();
+                                    string newPathName = String.Join("/", p);
+                                    newPathName += ":" + trackPath.GetConcatenatedSubNames();
 
-                                receiverAnim.TrackSetPath(index, newPathName);
-                                receiverAnim.CopyTrack(index, newConnectorAnim);
-                                Print("Animation added to: ", defConnector.Name, " ", anim, " ", newPathName);
+                                    receiverAnim.TrackSetPath(index, newPathName);
+                                    receiverAnim.CopyTrack(index, newConnectorAnim);
+                                    Print("Animation added to: ", connectorName, " ", anim, " ", newPathName);
+                                }
+                                removal = true;
+                                receiverAnim.RemoveTrack(index);
+                                break;
                             }
-                            receiverAnim.RemoveTrack(index);
                         }
-                        else {
-                            index++;
-                        }
+
+                        if (removal == false) { index++; }
+ 
                     }
                     if (newConnectorAnim.GetTrackCount() > 0 && matchingLibrary == null) {
-                        string partName = connector.GetMeta("PartData").AsGodotDictionary<string, string>()["PartName"];
-                        string thingName = connector.GetMeta("PartData").AsGodotDictionary<string, string>()["ThingName"];
-                        string conAnimName = thingName + partName + (string)receiverAnim.GetMeta("AnimationGroup");
+                        string conAnimName = connector.UID + (string)receiverAnim.GetMeta("AnimationGroup");
                         newConnectorAnim.SetMeta("AnimationGroup", receiverAnim.GetMeta("AnimationGroup"));
                         connectorAnimator.GetAnimationLibrary(conLibName).AddAnimation(conAnimName, newConnectorAnim);
-
                     }
                 }
             }

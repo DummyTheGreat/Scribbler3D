@@ -1,8 +1,10 @@
 using Godot;
-using static Godot.GD;
-using System;
-using System.Linq;
 using Godot.Collections;
+using System;
+using System.IO;
+using System.Linq;
+using static Godot.GD;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 [Tool]
 public partial class PostImportPart : EditorScenePostImport
@@ -11,31 +13,32 @@ public partial class PostImportPart : EditorScenePostImport
     Script deformingPartScript;
     Script alignmentPlaneScript;
 
+    private static void NameToMeta(Node node) {
+        string[] nameItems = node.Name.ToString().Split('_');
+
+        node.SetMeta("MeshType", nameItems[0]);
+        node.SetMeta("ThingName", nameItems[1]);
+        node.SetMeta("PartName", nameItems[2]);
+
+        string[] orientations = ["Left", "Right", "Front", "Rear", "Top", "Bottom"];
+
+        // Minimum should always be three. Type_Thing_Part
+        if (nameItems.Length >= 4 && nameItems[3].All(char.IsAsciiDigit)) {
+            node.SetMeta("VariantNumber", nameItems[3].ToInt());
+            if (nameItems.Length == 5) {
+                node.SetMeta("Orientation", nameItems[4]);
+            }
+        }
+        else if (nameItems.Length == 4 && orientations.Contains(nameItems[3])) {
+            node.SetMeta("Orientation", nameItems[3]);
+        }
+    }
+
     private void ValidateAndInitAlignmentPlane(MeshInstance3D mesh) {
         string meshName = mesh.Name.ToString();
         if ((Script)mesh.GetScript() == null && (meshName.Contains("Connector") || meshName.Contains("Receiver"))) {
             mesh.SetScript(this.alignmentPlaneScript);
-            string[] nameItems = meshName.Split('_');
-            Dictionary<string, string> data = new() {
-                { "MeshType", nameItems[0]},
-                { "ThingName", nameItems[1]},
-                { "PartName", nameItems[2]},
-            };
-
-            string[] orientations = ["Left", "Right", "Front", "Rear", "Top", "Bottom"];
-
-            // Minimum should always be three. Type_Thing_Part
-            if (nameItems.Length >= 4 && nameItems[3].All(char.IsAsciiDigit)) {
-                data.Add("VariantNumber", nameItems[3]);
-                if (nameItems.Length == 5) {
-                    data.Add("Orientation", nameItems[4]);
-                }
-            }
-            else if (nameItems.Length == 4 && orientations.Contains(nameItems[3])) {
-                data.Add("Orientation", nameItems[3]);
-            }
-
-            mesh.SetMeta("AlignmentData", data);
+            NameToMeta(mesh);
             mesh.Hide();
         }
     }
@@ -92,8 +95,6 @@ public partial class PostImportPart : EditorScenePostImport
         }
 
         if (partBounds != null) {
-            //part.Position += partBounds.Position;
-            //skin.Position -= partBounds.Position;
             if (partSkeleton != null) { 
                 partSkeleton.Position -= partBounds.Position;
             }
@@ -107,7 +108,7 @@ public partial class PostImportPart : EditorScenePostImport
         }
     }
 
-    private static void AnimationSetup(Node scene, AnimationPlayer animationPlayer, string thingName, string partName) {
+    private static void AnimationSetup(Node scene, AnimationPlayer animationPlayer) {
 
         // Add imported animations to model animation player and remove useless imported animations
         if (animationPlayer != null) {
@@ -137,16 +138,18 @@ public partial class PostImportPart : EditorScenePostImport
                 }
 
                 string aStr = animationName.ToString();
-                string newAnimName = thingName + partName + aStr;
+                bool isMA = scene.GetMeta("IsMirror").AsBool();
+                string newAnimName = scene.GetMeta("ThingName").AsString() + scene.GetMeta("PartName").AsString() + (isMA ? "Mirror" : "") + aStr;
                 a.SetMeta("AnimationGroup", aStr);
-                //string[] origins = [thingName];
-                //a.SetMeta("AnimtationOrigin", origins);
+
                 Print(a.GetMeta("AnimationGroup"));
                 thingLib.AddAnimation(newAnimName, a);
 
                 a.LoopMode = Animation.LoopModeEnum.Linear;
             }
-            animationPlayer.AddAnimationLibrary(thingName + partName + "Lib", thingLib);
+            bool isMirror = scene.GetMeta("IsMirror").AsBool();
+            string newLibName = scene.GetMeta("ThingName").AsString() + scene.GetMeta("PartName").AsString() + (isMirror ? "Mirror" : "") + "Lib";
+            animationPlayer.AddAnimationLibrary(newLibName, thingLib);
             animationPlayer.RemoveAnimationLibrary("");
         }
         else {
@@ -187,29 +190,37 @@ public partial class PostImportPart : EditorScenePostImport
         int secondUnderscore = remainingName.Find("_");
         string partName = remainingName[..secondUnderscore];
 
-        Dictionary<string, string> partData = new() {
-                { "ThingName", thingName},
-                { "PartName", partName},
-            };
-        scene.SetMeta("PartData", partData);
-
         ModifyNodeTree((Node3D)scene);
 
         AnimationPlayer animationPlayer = scene.GetChildren().OfType<AnimationPlayer>().FirstOrDefault();
 
-        AnimationSetup(scene, animationPlayer, thingName, partName);
+        string oldName = scene.Name.ToString();
+        scene.Name = importedPartName;
+        NameToMeta(scene);
+
         string mirrorName = thingName + "_" + partName + "_Mirror_Model";
-        if (scene.Name != mirrorName) {
-            string path = "assets/Models/" + thingName + "/Mirrors/" + mirrorName + ".glb";
-            if (FileAccess.FileExists(path)) { 
-                PackedScene mirror = Load<PackedScene>(path);
-                Print("Mirror Found");
-                scene.SetMeta("Mirror", mirror);
-            }
+        string path;
+
+        if (oldName != mirrorName) {
+            scene.SetMeta("IsMirror", false);
+            path = "assets/Models/" + thingName + "/Mirrors/" + mirrorName + ".glb";
+        }
+        else {
+            scene.SetMeta("IsMirror", true);
+            Print("Is Mirror");
+            path = "assets/Models/" + oldName + ".glb";
         }
 
-        scene.Name = importedPartName;
+        if (ResourceLoader.Exists(path)) {
+            PackedScene mirror = Load<PackedScene>(path);
+            Print("Mirror Found");
+            scene.SetMeta("Mirror", mirror);
+        }
 
+        AnimationSetup(scene, animationPlayer);
+
+        Script dataGeneration = Load<Script>("res://import/GenerateThingData.gd");
+        Print(dataGeneration.Call("generate", scene));
         return scene;
     }
 }

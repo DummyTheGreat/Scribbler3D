@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://cmw8l05ph7mfr"]
+
+[ext_resource type="Script" uid="uid://xhd011b3vuff" path="res://src/Things/Thing.cs" id="1_jghry"]
+[ext_resource type="Resource" uid="uid://cwyr2jwvol674" path="res://src/Things/Data/Resources/Human.tres" id="2_1d7ba"]
+
+[node name="Human" type="Node3D"]
+script = ExtResource("1_jghry")
+thingData = ExtResource("2_1d7ba")

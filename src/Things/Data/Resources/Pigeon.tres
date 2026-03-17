@@ -8,41 +8,41 @@
 [ext_resource type="PackedScene" uid="uid://nttujmemwaof" path="res://assets/Models/Pigeon/Pigeon_Leg_Model.glb" id="5_p7dul"]
 [ext_resource type="PackedScene" uid="uid://da8pm83827ixx" path="res://assets/Models/Pigeon/Pigeon_Wing_Model.glb" id="6_sxeqv"]
 
-[sub_resource type="Resource" id="Resource_m7gqy"]
+[sub_resource type="Resource" id="Resource_2mk5h"]
 script = ExtResource("1_m7gqy")
 partScene = ExtResource("2_2mk5h")
 amount = 1
 metadata/_custom_type_script = "uid://gmralgfdyysn"
 
-[sub_resource type="Resource" id="Resource_8y6lx"]
+[sub_resource type="Resource" id="Resource_x1gcf"]
 script = ExtResource("1_m7gqy")
 partScene = ExtResource("3_x1gcf")
 amount = 1
 receiver = Array[NodePath]([NodePath("Skeleton3D/NeckSocket_Rec/Receiver_Pigeon_Head_1")])
 metadata/_custom_type_script = "uid://gmralgfdyysn"
 
-[sub_resource type="Resource" id="Resource_ntm1y"]
+[sub_resource type="Resource" id="Resource_vjpee"]
 script = ExtResource("1_m7gqy")
 partScene = ExtResource("4_vjpee")
 amount = 1
 receiver = Array[NodePath]([NodePath("Skeleton3D/LowerSpineSocket_Rec/Receiver_Pigeon_Tail_1")])
 metadata/_custom_type_script = "uid://gmralgfdyysn"
 
-[sub_resource type="Resource" id="Resource_r3fin"]
+[sub_resource type="Resource" id="Resource_p7dul"]
+script = ExtResource("1_m7gqy")
+partScene = ExtResource("6_sxeqv")
+amount = 2
+receiver = Array[NodePath]([NodePath("Skeleton3D/WingSocket_Rec_R/Receiver_Pigeon_Wing_1_Right"), NodePath("Skeleton3D/WingSocket_Rec_L/Receiver_Pigeon_Wing_1_Left")])
+metadata/_custom_type_script = "uid://gmralgfdyysn"
+
+[sub_resource type="Resource" id="Resource_sxeqv"]
 script = ExtResource("1_m7gqy")
 partScene = ExtResource("5_p7dul")
 amount = 2
 receiver = Array[NodePath]([NodePath("Skeleton3D/LegSocket_Rec_L/Receiver_Pigeon_Leg_1_Left"), NodePath("Skeleton3D/LegSocket_Rec_R/Receiver_Pigeon_Leg_1_Right")])
 metadata/_custom_type_script = "uid://gmralgfdyysn"
 
-[sub_resource type="Resource" id="Resource_p82lb"]
-script = ExtResource("1_m7gqy")
-partScene = ExtResource("6_sxeqv")
-amount = 2
-receiver = Array[NodePath]([NodePath("Skeleton3D/WingSocket_Rec_L/Receiver_Pigeon_Wing_1_Left"), NodePath("Skeleton3D/WingSocket_Rec_R/Receiver_Pigeon_Wing_1_Right")])
-metadata/_custom_type_script = "uid://gmralgfdyysn"
-
 [resource]
 script = ExtResource("2_4kcq3")
-parts = Array[ExtResource("1_m7gqy")]([SubResource("Resource_m7gqy"), SubResource("Resource_8y6lx"), SubResource("Resource_ntm1y"), SubResource("Resource_r3fin"), SubResource("Resource_p82lb")])
+parts = Array[ExtResource("1_m7gqy")]([SubResource("Resource_2mk5h"), SubResource("Resource_x1gcf"), SubResource("Resource_vjpee"), SubResource("Resource_p7dul"), SubResource("Resource_sxeqv")])
 metadata/_custom_type_script = "uid://db8y68k8u3qya"

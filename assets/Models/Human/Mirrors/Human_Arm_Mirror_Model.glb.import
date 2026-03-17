@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bfrhpl7bgjqxx"
-path="res://.godot/imported/Rocket_Model.glb-e266b0b71d16399bbb974432736ee269.scn"
+uid="uid://buaul3b4yith7"
+path="res://.godot/imported/Human_Arm_Mirror_Model.glb-c0addc455c85799ea1dd27b6d6e0fa0e.scn"
 
 [deps]
 
-source_file="res://assets/Models/Rocket_Model.glb"
-dest_files=["res://.godot/imported/Rocket_Model.glb-e266b0b71d16399bbb974432736ee269.scn"]
+source_file="res://assets/Models/Human/Mirrors/Human_Arm_Mirror_Model.glb"
+dest_files=["res://.godot/imported/Human_Arm_Mirror_Model.glb-c0addc455c85799ea1dd27b6d6e0fa0e.scn"]
 
 [params]
 
@@ -33,7 +33,7 @@ animation/fps=30
 animation/trimming=false
 animation/remove_immutable_tracks=true
 animation/import_rest_as_RESET=false
-import_script/path="uid://b2wbj2twu5xt6"
+import_script/path="uid://vxebxbsl5lbq"
 materials/extract=0
 materials/extract_format=0
 materials/extract_path=""

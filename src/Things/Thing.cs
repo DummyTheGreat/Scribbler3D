@@ -15,7 +15,7 @@ public partial class Thing : Node3D
     public void Assemble(Node parent, ThingEditor editor) {
 
         static AlignmentPlane FindConnector(Node node) {
-            if (node is AlignmentPlane plane && plane.GetMeta("AlignmentData").AsGodotDictionary<string, string>()["MeshType"] == "Connector") {
+            if (node is AlignmentPlane plane && plane.GetMeta("MeshType").AsString() == "Connector") {
                 return plane;
             }
             AlignmentPlane connectorPlane = null;
@@ -36,6 +36,7 @@ public partial class Thing : Node3D
             for (int i = 0; i < amount; i++) {
                 PackedScene partPack = requirement.Get("partScene").As<PackedScene>();
                 Part pScene = partPack.Instantiate<Part>();
+                pScene.duplicateScene = partPack;
                 Godot.Collections.Array<NodePath> pathArray = requirement.Get("receiver").AsGodotArray<NodePath>();
                 if (pathArray.Count > 0) { pScene.pathToReceiver = pathArray[i];  }
                 partList.Add(pScene);
@@ -46,15 +47,21 @@ public partial class Thing : Node3D
         Part[] partArray = partList.ToArray();
         for (int i = 0; i < partArray.Length; i++) {
             if (partArray[i].pathToReceiver != null) {
-                Print(partArray[i].Name);
+                //Print(partArray[i].Name);
                 for (int j = 0; j < partArray.Length; j++) {
                     AlignmentPlane receiver = partArray[j].GetNodeOrNull<AlignmentPlane>(partArray[i].pathToReceiver);
                     if (receiver != null) {
-                        Print(receiver.Name);
+                        //Print(receiver.Name);
                         AlignmentPlane connector = FindConnector(partArray[i]);
+                        string conOrientation = "";
+                        string recOrientation = "";
 
-                        connector.GetMeta("AlignmentData").AsGodotDictionary<string, string>().TryGetValue("Orientation", out string conOrientation);
-                        receiver.GetMeta("AlignmentData").AsGodotDictionary<string, string>().TryGetValue("Orientation", out string recOrientation);
+                        if (connector.HasMeta("Orientation")) {
+                            conOrientation = connector.GetMeta("Orientation").AsString();
+                        }
+                        if (receiver.HasMeta("Orientation")) {
+                            recOrientation = receiver.GetMeta("Orientation").AsString();
+                        }
                         // Only mirror if 180 flip
                         if ((conOrientation == "Left" && recOrientation == "Right") || (conOrientation == "Right" && recOrientation == "Left") ||
                             (conOrientation == "Front" && recOrientation == "Rear") || (conOrientation == "Rear" && recOrientation == "Front") ||
@@ -64,6 +71,7 @@ public partial class Thing : Node3D
                             if (partArray[i].HasMeta("Mirror")) {
                                 PackedScene mirrorPartScene = partArray[i].GetMeta("Mirror").As<PackedScene>();
                                 partArray[i] = mirrorPartScene.Instantiate<Part>();
+                                partArray[i].duplicateScene = mirrorPartScene;
                                 connector = FindConnector(partArray[i]);
                                 oldPart.QueueFree();
                             }
@@ -72,27 +80,22 @@ public partial class Thing : Node3D
                         Part childPart = partArray[i];
                         Part parentPart = partArray[j];
                         if (parentPart.IsInsideTree()) {
-                            childPart.PreparePart(connector, receiver, parentPart, this, editor);
+                            childPart.PreparePart(connector, receiver, parentPart, this, editor, null);
                         }
                         else {
-                            parentPart.TreeEntered += () => childPart.PreparePart(connector, receiver, parentPart, this, editor);
+                            parentPart.PartPrepared += () => childPart.PreparePart(connector, receiver, parentPart, this, editor, null);
                         }
                         break;
                     }
                 }
             }
             else {
-                partArray[i].PreparePart(null, null, parent, this, editor);
+                partArray[i].PreparePart(null, null, parent, this, editor, null);
             }
         }
     }
 
-    public override void _Ready() {
-    }
+    public override void _Ready() { }
 
-    public override void _Process(double delta) {
-        //AnimationPlayer p = this.GetChildren().OfType<AnimationPlayer>().FirstOrDefault();
-        //p.GetAnimationLibrary()
-        //p?.Play("LegWiggler");
-    }
+    public override void _Process(double delta) { }
 }

@@ -20,12 +20,14 @@ public partial class PartCollider : Area3D {
     private MeshInstance3D link;
     private ImmediateMesh linkMesh;
     private bool initPhase;
+    private string colliderType;
 
 
     public PartCollider GetBoundCollider() { return this.boundCollider; }
     public void SetBoundCollider(PartCollider newBound) { this.boundCollider = newBound; }
     public void SetPlane(AlignmentPlane p) {
         this.plane = p;
+        this.colliderType = p.GetMeta("MeshType").AsString();
     }
 
     public void ToggleLinkVisibility(bool enable) {
@@ -108,9 +110,10 @@ public partial class PartCollider : Area3D {
             PushError("Collider does not have associated part");
         }
 
-        Print(this.associatedPart.depth);
-        this.CollisionLayer = (uint)(Math.Pow(2, this.associatedPart.depth));
-        this.CollisionMask = (uint)(this.associatedPart.depth > 0 ? Math.Pow(2, this.associatedPart.depth - 1) : 0);
+        //this.CollisionLayer = (uint)(Math.Pow(2, this.associatedPart.depth));
+        //this.CollisionMask = (uint)((this.associatedPart.depth > 0 && this.colliderType != "Receiver") ? Math.Pow(2, this.associatedPart.depth - 1) : 0);
+        this.CollisionLayer = (uint)(this.colliderType == "Receiver" ? 1 : 2);
+        this.CollisionMask = (uint)(this.colliderType == "Receiver" ? 0 : 1);
 
         if (this.CollisionMask != 0) {
             initPhase = true;
@@ -162,7 +165,6 @@ public partial class PartCollider : Area3D {
             }
             // Disconnect the collider that was previously bound to THIS collider by unassociating it from THIS collider
             this.boundCollider?.SetBoundCollider(null);
-
             // BoundArea collider -> collider
             closestCollider.SetBoundCollider(this);
             this.SetBoundCollider(closestCollider);
