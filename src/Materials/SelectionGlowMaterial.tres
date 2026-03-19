@@ -1,4 +1,4 @@
-[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://cm0dkfcj2y2b2"]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://cm0dkfcj2y2b2"]
 
 [ext_resource type="Shader" uid="uid://c56i3yt6lu8b3" path="res://src/Shaders/SelectionGlow.gdshader" id="1_yw71e"]
 

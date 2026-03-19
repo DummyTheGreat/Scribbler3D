@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ThingData" load_steps=11 format=3 uid="uid://jx0uky4oqaji"]
+[gd_resource type="Resource" script_class="ThingData" format=3 uid="uid://jx0uky4oqaji"]
 
 [ext_resource type="Script" uid="uid://gmralgfdyysn" path="res://src/Things/Parts/Data/PartRequirement.gd" id="1_aprfp"]
 [ext_resource type="PackedScene" uid="uid://6xfruotw5y86" path="res://assets/Models/Rocket/Rocket_Body_Model.glb" id="2_ejukw"]
@@ -16,21 +16,21 @@ metadata/_custom_type_script = "uid://gmralgfdyysn"
 [sub_resource type="Resource" id="Resource_gylkn"]
 script = ExtResource("1_aprfp")
 partScene = ExtResource("3_6pbms")
-amount = 1
+amount = 3
 receiver = Array[NodePath]([NodePath("Receiver_Rocket_Nozzle_1")])
 metadata/_custom_type_script = "uid://gmralgfdyysn"
 
 [sub_resource type="Resource" id="Resource_3156e"]
 script = ExtResource("1_aprfp")
 partScene = ExtResource("4_8gvki")
-amount = 1
+amount = 3
 receiver = Array[NodePath]([NodePath("Receiver_Rocket_Booster_1")])
 metadata/_custom_type_script = "uid://gmralgfdyysn"
 
 [sub_resource type="Resource" id="Resource_ge6x3"]
 script = ExtResource("1_aprfp")
 partScene = ExtResource("5_gylkn")
-amount = 4
+amount = 6
 receiver = Array[NodePath]([NodePath("Receiver_Rocket_Wing_1_Front"), NodePath("Receiver_Rocket_Wing_1_Left"), NodePath("Receiver_Rocket_Wing_1_Rear"), NodePath("Receiver_Rocket_Wing_1_Right")])
 metadata/_custom_type_script = "uid://gmralgfdyysn"
 

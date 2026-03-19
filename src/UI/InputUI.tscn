@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://b3jybxmkewd5h"]
 
-[node name="InputUi" type="Control"]
+[node name="InputUi" type="Control" unique_id=1217372282]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

@@ -9,8 +9,8 @@ public partial class Part : Node3D {
     [Signal]
     public delegate void PartPreparedEventHandler();
 
-    public NodePath parentPart;
-    public Godot.Collections.Array<NodePath> connectedParts = [];
+    public Part parentPart;
+    public Godot.Collections.Array<Part> connectedParts = [];
     public int depth;
 
     public StringName UID;
@@ -110,7 +110,7 @@ public partial class Part : Node3D {
     }
 
     private Part GetParentPart() {
-        return GetNodeOrNull<Part>(this.parentPart);
+        return this.parentPart;
     }
 
     public void ToggleEditorMode() {
@@ -128,20 +128,17 @@ public partial class Part : Node3D {
 
     // Receiver
     public virtual void AttachPart(Part connector) {
-        NodePath path = this.GetPathTo(connector);
-        connector.parentPart = connector.GetPathTo(this);
-        if (!this.connectedParts.Contains(path)) {
-            this.connectedParts.Add(path);
-            this.connectedParts.Sort();
+        connector.parentPart = this;
+        if (!this.connectedParts.Contains(connector)) {
+            this.connectedParts.Add(connector);
         }
     }
 
     // Receiver
     public virtual void DetachPart(Part connector) {
-        NodePath path = this.GetPathTo(connector);
         connector.Reparent(this.editor.GetEditorSpace());
         connector.parentPart = null;
-        this.connectedParts.Remove(path);
+        this.connectedParts.Remove(connector);
     }
 
     public virtual void Unselected() {
@@ -157,6 +154,10 @@ public partial class Part : Node3D {
             this.joining = true;
             this.activeCollider.GetBoundCollider().associatedPart.receiving = true;
         }
+        else {
+            // Add animations to selectable list, it is now a top part
+            this.editor.AddTopPartAnimationsToList(this);
+        }
     }
 
     public virtual void Selected() {
@@ -169,9 +170,8 @@ public partial class Part : Node3D {
     public virtual void MoveSelected() {
         if (this.activeCollider != null && this.GetParent() is not Thing) {
             Part receiverPart = this.activeCollider.GetBoundCollider().associatedPart;
-            // CHECK IF THE PART HAS A CONNECTOR
-            Print("MESMM: ", receiverPart.activeCollider);
 
+            // Loop to top part
             while (receiverPart.activeCollider != null) {
                 receiverPart = receiverPart.activeCollider.GetBoundCollider().associatedPart;
             }
@@ -200,13 +200,13 @@ public partial class Part : Node3D {
         Print(this.animationPlayer, " ", this.Name);
         if (parent is Part partParent) {
             receiver.AddSibling(this);
-            this.parentPart = this.GetPathTo(parent);
-            partParent.connectedParts.Add(parent.GetPathTo(this));
+            this.parentPart = partParent;
+            partParent.connectedParts.Add(this);
             this.depth = partParent.depth + 1;
             Part topPart = partParent;
 
             while (topPart.parentPart != null) {
-                topPart = (Part)topPart.GetNode(topPart.parentPart);
+                topPart = topPart.parentPart;
                 Print(topPart);
             }
             if (this.animationPlayer != null) {
@@ -258,6 +258,7 @@ public partial class Part : Node3D {
         foreach (AlignmentPlane quad in this.bindingQuads) {
             PartCollider partCollider = colliderScene.Instantiate<PartCollider>();
             partCollider.SetPlane(quad);
+            quad.SetCollider(partCollider);
             this.AddPartCollider(partCollider, quad);
 
             // Set collider up based on the boundary line's endpoint coordinates

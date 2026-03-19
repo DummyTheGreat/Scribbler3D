@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ThingData" load_steps=13 format=3 uid="uid://c85wpjr3pu77i"]
+[gd_resource type="Resource" script_class="ThingData" format=3 uid="uid://c85wpjr3pu77i"]
 
 [ext_resource type="Script" uid="uid://gmralgfdyysn" path="res://src/Things/Parts/Data/PartRequirement.gd" id="1_m7gqy"]
 [ext_resource type="PackedScene" uid="uid://bw73fdjwjis2w" path="res://assets/Models/Pigeon/Pigeon_Body_Model.glb" id="2_2mk5h"]

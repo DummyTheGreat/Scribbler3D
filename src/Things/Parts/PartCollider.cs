@@ -25,6 +25,17 @@ public partial class PartCollider : Area3D {
 
     public PartCollider GetBoundCollider() { return this.boundCollider; }
     public void SetBoundCollider(PartCollider newBound) { this.boundCollider = newBound; }
+    // Only called by connecting collider
+    public void ClearColliderRelation() {
+        this.boundCollider?.SetBoundCollider(null);
+        HandleSeparation(this.boundCollider);
+        SetBoundCollider(null);
+
+        this.ToggleLinkVisibility(false);
+
+        this.EmitSignal(SignalName.PartDisconnect);
+        this.RemoveChild(link);
+    }
     public void SetPlane(AlignmentPlane p) {
         this.plane = p;
         this.colliderType = p.GetMeta("MeshType").AsString();
@@ -149,15 +160,10 @@ public partial class PartCollider : Area3D {
         // -- End
         if (closestCollider == null && this.boundCollider != null) {
             // BoundArea collider -> null
-            this.boundCollider.SetBoundCollider(null);
-            this.SetBoundCollider(null);
-
-            this.ToggleLinkVisibility(false);
-
-            this.EmitSignal(SignalName.PartDisconnect);
-            this.RemoveChild(link);
+            ClearColliderRelation();
         }
         else if (closestCollider != this.boundCollider) {
+            Print(this.associatedPart.Name);
             // BoundArea null -> collider
             if (this.boundCollider == null) {
                 this.ToggleLinkVisibility(true);

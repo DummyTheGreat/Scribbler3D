@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://ys0ss3d6jews"]
+[gd_scene format=3 uid="uid://ys0ss3d6jews"]
 
 [ext_resource type="Script" uid="uid://j4nm7xo383fn" path="res://src/UI/ThingEditor.cs" id="1_nky41"]
 [ext_resource type="Texture2D" uid="uid://thinqup0r1ei" path="res://icon.svg" id="1_nx73a"]
@@ -11,7 +11,7 @@ ambient_light_source = 2
 ambient_light_color = Color(0.6872149, 0.68721503, 0.6872149, 1)
 glow_enabled = true
 
-[node name="ThingEditor" type="Control"]
+[node name="ThingEditor" type="Control" unique_id=708212887]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,9 +20,9 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_nky41")
 
-[node name="UI" type="CanvasLayer" parent="."]
+[node name="UI" type="CanvasLayer" parent="." unique_id=1829497702]
 
-[node name="ItemList" type="ItemList" parent="UI"]
+[node name="ItemList" type="ItemList" parent="UI" unique_id=1132402489]
 z_index = 2
 custom_minimum_size = Vector2(100, 0)
 anchors_preset = -1
@@ -42,7 +42,7 @@ item_1/icon = ExtResource("1_nx73a")
 item_2/text = "Human"
 item_2/icon = ExtResource("1_nx73a")
 
-[node name="ShowAnimations" type="Button" parent="UI"]
+[node name="ShowAnimations" type="Button" parent="UI" unique_id=1272709947]
 z_index = 2
 anchors_preset = -1
 anchor_top = 0.9
@@ -50,7 +50,7 @@ anchor_right = 0.2
 anchor_bottom = 1.0
 text = "Show Animations l>"
 
-[node name="AnimationList" type="HBoxContainer" parent="UI"]
+[node name="AnimationList" type="HBoxContainer" parent="UI" unique_id=1507923552]
 z_index = 1
 anchors_preset = -1
 anchor_left = 0.2
@@ -59,7 +59,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 
-[node name="Default" type="Label" parent="UI/AnimationList"]
+[node name="Default" type="Label" parent="UI/AnimationList" unique_id=1096138314]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 1
@@ -68,50 +68,50 @@ text = "No Animations"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="EditTools" type="VBoxContainer" parent="UI"]
+[node name="EditTools" type="VBoxContainer" parent="UI" unique_id=1658168598]
 anchors_preset = -1
 anchor_left = 0.8
 anchor_right = 1.0
 anchor_bottom = 0.9
 
-[node name="DuplicateSelected" type="Button" parent="UI/EditTools"]
+[node name="DuplicateSelected" type="Button" parent="UI/EditTools" unique_id=1796736625]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Duplicate Selected"
 
-[node name="DeleteSelected" type="Button" parent="UI/EditTools"]
+[node name="DeleteSelected" type="Button" parent="UI/EditTools" unique_id=1596781844]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Delete Selected"
 
-[node name="CreateNewThing" type="Button" parent="UI/EditTools"]
+[node name="CreateNewThing" type="Button" parent="UI/EditTools" unique_id=738867206]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Create New Thing"
 
-[node name="RotationButtons" type="HBoxContainer" parent="UI/EditTools"]
+[node name="RotationButtons" type="HBoxContainer" parent="UI/EditTools" unique_id=839931013]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="RotateClockwise" type="Button" parent="UI/EditTools/RotationButtons"]
+[node name="RotateClockwise" type="Button" parent="UI/EditTools/RotationButtons" unique_id=1181883703]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Rotate
 Clockwise"
 
-[node name="RotateCounter" type="Button" parent="UI/EditTools/RotationButtons"]
+[node name="RotateCounter" type="Button" parent="UI/EditTools/RotationButtons" unique_id=1188936783]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Rotate
 Counter-
 Clockwise"
 
-[node name="ToggleQuadList" type="Button" parent="UI/EditTools"]
+[node name="ToggleQuadList" type="Button" parent="UI/EditTools" unique_id=1917716168]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Toggle Quad LIst"
 
-[node name="Editor Window" type="SubViewportContainer" parent="."]
+[node name="Editor Window" type="SubViewportContainer" parent="." unique_id=627488712]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.2
@@ -119,24 +119,24 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 stretch = true
 
-[node name="3DWindow" type="SubViewport" parent="Editor Window"]
+[node name="3DWindow" type="SubViewport" parent="Editor Window" unique_id=130727183]
 handle_input_locally = false
 size = Vector2i(921, 648)
 render_target_update_mode = 4
 
-[node name="Things" type="Node3D" parent="Editor Window/3DWindow"]
+[node name="Things" type="Node3D" parent="Editor Window/3DWindow" unique_id=2123047561]
 script = ExtResource("3_0355r")
 
-[node name="Controller" type="Node3D" parent="Editor Window/3DWindow/Things"]
+[node name="Controller" type="Node3D" parent="Editor Window/3DWindow/Things" unique_id=1472129563]
 script = ExtResource("3_caupk")
 
-[node name="Pivot" type="Node3D" parent="Editor Window/3DWindow/Things/Controller"]
+[node name="Pivot" type="Node3D" parent="Editor Window/3DWindow/Things/Controller" unique_id=337225462]
 
-[node name="Camera3D" type="Camera3D" parent="Editor Window/3DWindow/Things/Controller/Pivot"]
+[node name="Camera3D" type="Camera3D" parent="Editor Window/3DWindow/Things/Controller/Pivot" unique_id=1213177791]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 9.032)
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Editor Window/3DWindow/Things"]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Editor Window/3DWindow/Things" unique_id=662388926]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 19.670753, 0)
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="Editor Window/3DWindow"]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Editor Window/3DWindow" unique_id=416124105]
 environment = SubResource("Environment_nky41")

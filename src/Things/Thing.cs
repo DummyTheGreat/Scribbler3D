@@ -38,7 +38,7 @@ public partial class Thing : Node3D
                 Part pScene = partPack.Instantiate<Part>();
                 pScene.duplicateScene = partPack;
                 Godot.Collections.Array<NodePath> pathArray = requirement.Get("receiver").AsGodotArray<NodePath>();
-                if (pathArray.Count > 0) { pScene.pathToReceiver = pathArray[i];  }
+                if (pathArray.Count > 0) { pScene.pathToReceiver = pathArray[i]; }
                 partList.Add(pScene);
             }
         }

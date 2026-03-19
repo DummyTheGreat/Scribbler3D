@@ -2,6 +2,13 @@
   "profiles": {
     "Scribbler3D": {
       "commandName": "Project"
+    },
+    "Profile 1": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\jwyatt\\Desktop\\C#GODOT\\Godot_v4.6.1-stable_mono_win64.exe",
+      "commandLineArgs": "--path $(ProjectDir)",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": true
     }
   }
 }

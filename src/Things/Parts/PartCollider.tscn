@@ -1,11 +1,11 @@
-[gd_scene load_steps=3 format=3 uid="uid://1tleucvfl4h1"]
+[gd_scene format=3 uid="uid://1tleucvfl4h1"]
 
 [ext_resource type="Script" uid="uid://b8n4ddhehahx4" path="res://src/Things/Parts/PartCollider.cs" id="1_0ad2d"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_futqf"]
 
-[node name="PartCollider" type="Area3D"]
+[node name="PartCollider" type="Area3D" unique_id=527197780]
 script = ExtResource("1_0ad2d")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=2075543325]
 shape = SubResource("SphereShape3D_futqf")

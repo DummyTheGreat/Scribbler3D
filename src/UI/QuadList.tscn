@@ -1,27 +1,27 @@
-[gd_scene load_steps=2 format=3 uid="uid://c3jw735kd1684"]
+[gd_scene format=3 uid="uid://c3jw735kd1684"]
 
 [ext_resource type="Script" uid="uid://cs81akqntxu1l" path="res://src/UI/QuadList.cs" id="1_gj1jf"]
 
-[node name="QuadList" type="HBoxContainer"]
+[node name="QuadList" type="HBoxContainer" unique_id=601070682]
 anchors_preset = -1
 anchor_right = 0.2
 anchor_bottom = 0.4
 mouse_filter = 0
 script = ExtResource("1_gj1jf")
 
-[node name="List" type="VBoxContainer" parent="."]
+[node name="List" type="VBoxContainer" parent="." unique_id=1907081717]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Tools" type="VBoxContainer" parent="."]
+[node name="Tools" type="VBoxContainer" parent="." unique_id=654354645]
 layout_mode = 2
 
-[node name="Close" type="Button" parent="Tools"]
+[node name="Close" type="Button" parent="Tools" unique_id=1488743601]
 custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
 text = "X"
 
-[node name="VScrollBar" type="VScrollBar" parent="Tools"]
+[node name="VScrollBar" type="VScrollBar" parent="Tools" unique_id=35124316]
 layout_mode = 2
 size_flags_horizontal = 1
 size_flags_vertical = 3

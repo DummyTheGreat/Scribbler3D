@@ -13,8 +13,7 @@ public partial class AlignmentPlane : MeshInstance3D {
     private Vector3 front;
     private Vector2 dimensions;
     private int frontIndex;
-
-    private Vector3 old;
+    private PartCollider collider;
 
     static Vector3 Centroid(Vector3[] v) {
         Vector3 sum = Vector3.Zero;
@@ -22,6 +21,8 @@ public partial class AlignmentPlane : MeshInstance3D {
         return sum / v.Length;
     }
 
+    public void SetCollider(PartCollider pc) { this.collider = pc; }
+    public PartCollider GetCollider() { return this.collider; }
     public Vector3 GetLocalNormal() { return this.localNormal; }
     public Basis GetLocalFrame() { return this.localFrame; }
     public Vector3 GetCentroid() { return this.centroid; }

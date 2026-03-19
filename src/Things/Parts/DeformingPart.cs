@@ -25,6 +25,7 @@ using static Godot.GD;
 public partial class DeformingPart : Part {
 
     public Skeleton3D skeleton;
+    public TwoBoneIK3D inverseKin;
 
     public override void DoAnimation(StringName animationLibrary, StringName animation) {
         string name = animationLibrary + "/" + animation;
@@ -122,10 +123,14 @@ public partial class DeformingPart : Part {
 
     // Receiver
     public override void AttachPart(Part connector) {
-        base.AttachPart(connector);
         BoneAttachment3D receiverSocket = connector.activeCollider.GetBoundCollider().GetParentOrNull<BoneAttachment3D>();
         connector.Reparent(receiverSocket);
-        MergeAnimations(connector);
+        base.AttachPart(connector);
+        Part topPart = this;
+        while (topPart.activeCollider != null) {
+            topPart = topPart.activeCollider.GetBoundCollider().associatedPart;
+        }
+        topPart.MergeAnimations(connector);
     }
 
     // Receiver = this
@@ -143,8 +148,8 @@ public partial class DeformingPart : Part {
                 connectorAnimator.AddAnimationLibrary(conLibName, matchingLibrary != null ? matchingLibrary : tempConLib);
 
                 List<string> conChildren = [defConnector.Name.ToString()];
-                foreach (NodePath p in defConnector.connectedParts) {
-                    conChildren.Add(defConnector.GetNode<Part>(p).Name.ToString());
+                foreach (Part p in defConnector.connectedParts) {
+                    conChildren.Add(p.Name.ToString());
                 }
 
                 foreach (string anim in receiverLib.GetAnimationList()) {
@@ -231,6 +236,8 @@ public partial class DeformingPart : Part {
 
     public override void _Ready() {
         this.skeleton = this.GetChildren().OfType<Skeleton3D>().FirstOrDefault();
+        this.inverseKin = new();
+        this.skeleton.AddChild(this.inverseKin);
         this.bindingQuads = [..
             this.skeleton.GetChildren().OfType<BoneAttachment3D>().SelectMany(x => x.GetChildren()).OfType<AlignmentPlane>()
             ];

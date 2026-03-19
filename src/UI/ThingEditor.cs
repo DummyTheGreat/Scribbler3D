@@ -18,6 +18,7 @@ public partial class ThingEditor : Control {
     private Button rotateClockwise;
     private Button rotateCounterClockwise;
     private Button toggleQuadList;
+    private SubViewportContainer worldContainer;
 
     private bool animListActive;
     private Theme theme;
@@ -88,6 +89,31 @@ public partial class ThingEditor : Control {
         return list.Count;
     }
 
+    public void AddTopPartAnimationsToList(Part part) {
+        foreach (StringName libStr in part.animationPlayer.GetAnimationLibraryList()) {
+            AnimationLibrary lib = part.animationPlayer.GetAnimationLibrary(libStr);
+            foreach (StringName animStr in lib.GetAnimationList()) {
+                Print(animStr);
+                if (lib.GetAnimationListSize() > 0 &&
+                    this.animationList.GetChildCount() == 1 &&
+                    this.animationList.GetChild(0).Name == "Default") {
+                    this.animationList.GetChild<Label>(0).Hide();
+                }
+                Button animLabel = new() {
+                    Name = animStr + "Button",
+                    Text = animStr,
+                    GrowVertical = GrowDirection.Both,
+                    SizeFlagsHorizontal = SizeFlags.Fill,
+                    SizeFlagsVertical = SizeFlags.Fill,
+                    CustomMinimumSize = new Vector2(this.animationList.Size.X * 0.2f, 0f),
+                    Theme = this.theme
+                };
+                this.animationList.AddChild(animLabel);
+                animLabel.Pressed += () => part.DoAnimation(libStr, animStr);
+            }
+        }
+    }
+
     /** 
      * Signal Function
      * 
@@ -102,28 +128,7 @@ public partial class ThingEditor : Control {
         Part[] newChildren = [.. this.worldRoot.GetChildren().OfType<Part>().Where(x => x.thing == thing)];
         foreach (Part part in newChildren) {
             if (part.animationPlayer != null) {
-                foreach (StringName libStr in part.animationPlayer.GetAnimationLibraryList()) {
-                    AnimationLibrary lib = part.animationPlayer.GetAnimationLibrary(libStr);
-                    foreach (StringName animStr in lib.GetAnimationList()) {
-                        Print(animStr);
-                        if (lib.GetAnimationListSize() > 0 &&
-                            this.animationList.GetChildCount() == 1 &&
-                            this.animationList.GetChild(0).Name == "Default") {
-                            this.animationList.GetChild<Label>(0).Hide();
-                        }
-                        Button animLabel = new() {
-                            Name = animStr + "Button",
-                            Text = animStr,
-                            GrowVertical = GrowDirection.Both,
-                            SizeFlagsHorizontal = SizeFlags.Fill,
-                            SizeFlagsVertical = SizeFlags.Fill,
-                            CustomMinimumSize = new Vector2(this.animationList.Size.X * 0.2f, 0f),
-                            Theme = this.theme
-                        };
-                        this.animationList.AddChild(animLabel);
-                        animLabel.Pressed += () => part.DoAnimation(libStr, animStr);
-                    }
-                }
+                AddTopPartAnimationsToList(part);
             }
             else {
                 AnimationPlayer placeholder = new();
@@ -221,7 +226,7 @@ public partial class ThingEditor : Control {
                 string meshType = plane.GetMeta("MeshType").AsString();
 
                 Button quadItem = quadItemScene.Instantiate<Button>();
-                quadItem.Pressed += () => FlipQuad(meshType, plane);
+                quadItem.Pressed += () => list.FlipQuad(meshType, plane);
                 Node container = quadItem.GetChild(0);
                 container.GetChild<Label>(0).Text = partName;
                 container.GetChild<Label>(1).Text = meshType;
@@ -232,31 +237,10 @@ public partial class ThingEditor : Control {
             Camera3D camera = this.worldRoot.GetViewport().GetCamera3D();
             
             Vector2 pos = camera.UnprojectPosition(p.GlobalPosition);
-            this.worldRoot.AddChild(list);
+            this.worldContainer.AddChild(list);
             list.Position = pos;
             list.Visible = true;
         }
-    }
-
-    private void FlipQuad(string meshType, AlignmentPlane plane) {
-        //if (this.worldRoot.selectedPart is DeformingPart defPart) {
-        //    MeshInstance3D skin = this.worldRoot.selectedPart.GetSkinMesh();
-        //    skin.Skin = null;
-
-        //    BoneAttachment3D socket = plane.GetParentOrNull<BoneAttachment3D>();
-        //    if (socket == null) { return; }
-        //    int rootIndex = defPart.skeleton.GetParentlessBones().First();
-        //    int socketIndex = socket.BoneIdx;
-        //    int socketParent = defPart.skeleton.GetBoneParent(socketIndex);
-        //    // Make socket the new root and move the old root 
-        //    defPart.skeleton.UnparentBoneAndRest(socketIndex);
-        //    while (socketParent != rootIndex) {
-        //        int current = socketParent;
-        //        socketParent = defPart.skeleton.GetBoneParent(socketParent);
-        //        defPart.skeleton.UnparentBoneAndRest(current);
-        //    }
-
-        //}
     }
 
     private void RotatePart(float degrees) {
@@ -297,7 +281,8 @@ public partial class ThingEditor : Control {
         this.toggleQuadList = this.toolList.GetChild<Button>(4);
         this.toggleQuadList.Pressed += ToggleQuadList;
 
-        this.worldRoot = GetChild<SubViewportContainer>(1).GetChild<SubViewport>(0).GetChild<ThingEditorSpace>(0);
+        this.worldContainer = this.GetChild<SubViewportContainer>(1);
+        this.worldRoot = this.worldContainer.GetChild<SubViewport>(0).GetChild<ThingEditorSpace>(0);
         this.animListActive = false;
         this.theme = Load<Theme>("src/UI/Themes/ThingEditor.tres");
 
