@@ -53,12 +53,10 @@ public partial class QuadList : HBoxContainer {
 
             if (meshType == "Receiver") {
                 int endIndex = socket.BoneIdx;
-                int middleIndex = defPart.skeleton.GetBoneParent(endIndex);
-                int rootIndex = defPart.skeleton.GetBoneParent(middleIndex);
+                int rootIndex = defPart.skeleton.GetParentlessBones()[0];
 
                 defPart.inverseKin.SetSettingCount(1);
                 defPart.inverseKin.SetRootBone(0, rootIndex);
-                defPart.inverseKin.SetMiddleBone(0, middleIndex);
                 defPart.inverseKin.SetEndBone(0, endIndex);
 
             }
@@ -69,6 +67,27 @@ public partial class QuadList : HBoxContainer {
 
         plane.SetMeta("MeshType", meshType == "Connector" ? "Receiver" : "Connector");
         Close();
+    }
+
+    public void AddTopPartAnimationsToList(Part part) {
+        Part topPart = part;
+        while (topPart.parentPart != null) { topPart = topPart.parentPart; }
+
+        foreach (StringName libStr in topPart.animationPlayer.GetAnimationLibraryList()) {
+            AnimationLibrary lib = topPart.animationPlayer.GetAnimationLibrary(libStr);
+            foreach (StringName animStr in lib.GetAnimationList()) {
+                Animation anim = lib.GetAnimation(animStr);
+                Button animLabel = new() {
+                    Name = animStr + "_Button",
+                    Text = anim.GetMeta("AnimationGroup").AsString(),
+                    SizeFlagsHorizontal = SizeFlags.Fill,
+                    //CustomMinimumSize = new Vector2(this.animationList.Size.X * 0.2f, 20f),
+                };
+                animLabel.SetMeta("PartUID", topPart.UID);
+                this.list.AddChild(animLabel);
+                animLabel.Pressed += () => topPart.DoAnimation(libStr, animStr);
+            }
+        }
     }
 
     public override void _Ready() {

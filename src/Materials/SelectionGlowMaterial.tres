@@ -5,6 +5,6 @@
 [resource]
 render_priority = 0
 shader = ExtResource("1_yw71e")
-shader_parameter/glow_color = Color(0.63157946, 0.72959614, 0.9478579, 1)
+shader_parameter/glow_color = Color(0.12062272, 0.4264325, 0.6135011, 1)
 shader_parameter/glow_strength = 4.0
-shader_parameter/rim_power = 2.0
+shader_parameter/rim_power = 0.2

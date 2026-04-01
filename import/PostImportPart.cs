@@ -22,25 +22,28 @@ public partial class PostImportPart : EditorScenePostImport
 
         string[] orientations = ["Left", "Right", "Front", "Rear", "Top", "Bottom"];
 
-        // Minimum should always be three. Type_Thing_Part
-        if (nameItems.Length >= 4 && nameItems[3].All(char.IsAsciiDigit)) {
-            node.SetMeta("VariantNumber", nameItems[3].ToInt());
-            if (nameItems.Length == 5) {
-                node.SetMeta("Orientation", nameItems[4]);
+        for (int i = 3; i < nameItems.Length; i++) {
+            if (orientations.Contains(nameItems[i])) {
+                node.SetMeta("Orientation", nameItems[i]);
             }
-        }
-        else if (nameItems.Length == 4 && orientations.Contains(nameItems[3])) {
-            node.SetMeta("Orientation", nameItems[3]);
+            else if (nameItems[i].Length == 2 && nameItems[i][0] == 'V') {
+                node.SetMeta("PartVariant", (int)(nameItems[i][1] - '0'));
+            }
+            else if (nameItems[i].Length == 2 && nameItems[i][0] == 'I') {
+                node.SetMeta("Instance", (int)(nameItems[i][1] - '0'));
+            }
         }
     }
 
-    private void ValidateAndInitAlignmentPlane(MeshInstance3D mesh) {
+    private bool ValidateAndInitAlignmentPlane(MeshInstance3D mesh) {
         string meshName = mesh.Name.ToString();
         if ((Script)mesh.GetScript() == null && (meshName.Contains("Connector") || meshName.Contains("Receiver"))) {
             mesh.SetScript(this.alignmentPlaneScript);
             NameToMeta(mesh);
             mesh.Hide();
+            return true;
         }
+        return false;
     }
 
     private void ModifyNodeTree(Node3D part) {
@@ -71,7 +74,17 @@ public partial class PostImportPart : EditorScenePostImport
                 else if (mesh.Name.ToString().StartsWith("Skin")) {
                     skin = mesh;
                 }
-                ValidateAndInitAlignmentPlane(mesh);
+                if (ValidateAndInitAlignmentPlane(mesh)) { // Static
+                    string ori = mesh.HasMeta("Orientation") ? "_" + mesh.GetMeta("Orientation").AsString() : "";
+                    string inst = mesh.HasMeta("Instance") ? "_" + mesh.GetMeta("Instance").AsString() : "";
+                    Node3D group = new() { Name = "Group_" + mesh.GetMeta("PartName").AsString() + ori + inst};
+
+                    part.AddChild(group);
+                    group.Owner = part;
+                    mesh.Owner = null;
+                    mesh.Reparent(group);
+                    mesh.Owner = part;
+                }
             }
 
             if (child is Skeleton3D skeleton) {
@@ -139,8 +152,16 @@ public partial class PostImportPart : EditorScenePostImport
 
                 string aStr = animationName.ToString();
                 bool isMA = scene.GetMeta("IsMirror").AsBool();
-                string newAnimName = scene.GetMeta("ThingName").AsString() + scene.GetMeta("PartName").AsString() + (isMA ? "Mirror" : "") + aStr;
+                string newAnimName =
+                    "Animation" + 
+                    scene.GetMeta("ThingName").AsString() + 
+                    scene.GetMeta("PartName").AsString() + 
+                    (isMA ? "Mirror" : "") + 
+                    aStr + 
+                    "_V" + scene.GetMeta("PartVariant").AsString() + 
+                    "_I" + scene.GetMeta("Instance").AsString();
                 a.SetMeta("AnimationGroup", aStr);
+                a.SetMeta("Instance", scene.GetMeta("Instance").AsInt32());
 
                 Print(a.GetMeta("AnimationGroup"));
                 thingLib.AddAnimation(newAnimName, a);
@@ -148,7 +169,15 @@ public partial class PostImportPart : EditorScenePostImport
                 a.LoopMode = Animation.LoopModeEnum.Linear;
             }
             bool isMirror = scene.GetMeta("IsMirror").AsBool();
-            string newLibName = scene.GetMeta("ThingName").AsString() + scene.GetMeta("PartName").AsString() + (isMirror ? "Mirror" : "") + "Lib";
+            string newLibName = 
+                "Library" +
+                scene.GetMeta("ThingName").AsString() + 
+                scene.GetMeta("PartName").AsString() + 
+                (isMirror ? "Mirror" : "") + 
+                "_V" + scene.GetMeta("PartVariant").AsString() + 
+                "_I" + scene.GetMeta("Instance").AsString();
+            thingLib.SetMeta("Instance", scene.GetMeta("Instance").AsInt32());
+
             animationPlayer.AddAnimationLibrary(newLibName, thingLib);
             animationPlayer.RemoveAnimationLibrary("");
         }
@@ -220,7 +249,7 @@ public partial class PostImportPart : EditorScenePostImport
         AnimationSetup(scene, animationPlayer);
 
         Script dataGeneration = Load<Script>("res://import/GenerateThingData.gd");
-        Print(dataGeneration.Call("generate", scene));
+        Print(dataGeneration.Call("GenerateImport", scene));
         return scene;
     }
 }

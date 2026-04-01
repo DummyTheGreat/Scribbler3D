@@ -25,100 +25,34 @@ using static Godot.GD;
 public partial class DeformingPart : Part {
 
     public Skeleton3D skeleton;
-    public TwoBoneIK3D inverseKin;
+    public Fabrik3D inverseKin;
 
-    public override void DoAnimation(StringName animationLibrary, StringName animation) {
-        string name = animationLibrary + "/" + animation;
-        if (this.animationPlayer.IsPlaying() && this.animationPlayer.CurrentAnimation.Equals(name)) {
-            this.animationPlayer.Stop();
+    private void UpdateSkeletonScale() {
+        // Apply skeleton changes
+        this.skeleton = this.GetChildren().OfType<Skeleton3D>().FirstOrDefault();
+        foreach (Resource bData in this.importData.boneData) {
+            int idx = bData.Get("boneIndex").AsInt32();
+            Vector3 newScale = new(
+                bData.Get("xScale").As<float>(),
+                bData.Get("yScale").As<float>(),
+                bData.Get("zScale").As<float>());
+            this.skeleton.SetBonePoseScale(idx, newScale);
         }
-        else {
-            this.animationPlayer.Play(name);
-        }
+    }
+
+    public override ImportData CreateImportData(Resource partImportData) {
+        ImportData d = base.CreateImportData(partImportData);
+        UpdateSkeletonScale();
+        return d;
     }
 
     public override MeshInstance3D GetSkinMesh() {
         return this.skeleton.GetChildren().OfType<MeshInstance3D>().FirstOrDefault();
     }
 
-    public override void MergeAnimations(Part connector) {
-        string conLibName = connector.UID + "Lib";
-
-        AnimationLibrary matchingLibrary = this.editor.GetPartAnimationLibrary(connector.UID, conLibName, connector);
-        Print(connector.animationPlayer.GetAnimationList());
-        if (connector is DeformingPart defConnector) {
-            while (defConnector.animationPlayer.GetAnimationLibraryList().Count > 0) {
-                StringName conLibStr = defConnector.animationPlayer.GetAnimationLibraryList().First();
-                AnimationLibrary conLib = defConnector.animationPlayer.GetAnimationLibrary(conLibStr);
-                Print("Library: ", conLibStr);
-                Print("Animations: ", conLib.GetAnimationListSize());
-
-                foreach (StringName conAnimStr in conLib.GetAnimationList()) {
-                    //StringName conAnimStr = conLib.GetAnimationList().First();
-                    Animation conAnim = conLib.GetAnimation(conAnimStr);
-                    string conAnimGroup = conAnim.GetMeta("AnimationGroup").AsString();
-                    bool match = false;
-                    foreach (string recAnimStr in this.animationPlayer.GetAnimationList()) {
-                        Animation recAnim = this.animationPlayer.GetAnimation(recAnimStr);
-                        string recAnimGroup = recAnim.GetMeta("AnimationGroup").AsString();
-
-                        if (conAnimGroup.Equals(recAnimGroup)) {
-                            // Merge
-                            Print("Animation Merge");
-                            for (int i = 0; i < conAnim.GetTrackCount(); i++) {
-                                NodePath oldPath = conAnim.TrackGetPath(i);
-                                string newPath = this.GetPathTo(defConnector).GetConcatenatedNames() + "/" + conAnim.TrackGetPath(i).ToString();
-                                Print(newPath.ToString());
-                                conAnim.TrackSetPath(i, newPath);
-                                conAnim.CopyTrack(i, recAnim);
-                                conAnim.TrackSetPath(i, oldPath);
-                            }
-                            match = true;
-                            break;
-                        }
-                    }
-
-                    // There is no matching animation group in the receiver's animation list so create create new receiver animation
-                    if (!match) {
-
-                        Godot.Collections.Array<StringName> recLibs = this.animationPlayer.GetAnimationLibraryList();
-                        if (recLibs.Count > 1) { Print("Why in the hell is there more than one library"); }
-                        AnimationLibrary recLib = this.animationPlayer.GetAnimationLibrary(recLibs.First());
-                        Animation newRecAnim = new();
-                        Print("New Animation");
-                        // New
-                        for (int i = 0; i < conAnim.GetTrackCount(); i++) {
-                            NodePath oldPath = conAnim.TrackGetPath(i);
-                            string newPath = this.GetPathTo(defConnector).GetConcatenatedNames() + "/" + conAnim.TrackGetPath(i).ToString();
-                            Print(newPath.ToString());
-                            conAnim.TrackSetPath(i, newPath);
-                            conAnim.CopyTrack(i, newRecAnim);
-                            conAnim.TrackSetPath(i, oldPath);
-                        }
-
-                        newRecAnim.LoopMode = Animation.LoopModeEnum.Linear;
-                        newRecAnim.SetMeta("AnimationGroup", conAnim.GetMeta("AnimationGroup"));
-                        recLib.AddAnimation(this.UID + conAnim.GetMeta("AnimationGroup"), newRecAnim);
-                    }
-
-                    // All duplicated parts share the same library. Only delete animations if this is the last remaining copy referencing the library
-                    if (matchingLibrary == null) {
-                        Print("Delete Animtion: ", conAnimStr);
-                        conLib.RemoveAnimation(conAnimStr);
-                    }
-
-                    Print("Animation added to: ", this.Name);
-                    Print(conAnimStr);
-                }
-
-                defConnector.animationPlayer.RemoveAnimationLibrary(conLibStr);
-            }
-
-            //foreach (defConnector.animationPlayer.GetAnimationLibraryList()
-            defConnector.RemoveChild(defConnector.animationPlayer);
-            defConnector.animationPlayer.QueueFree();
-            defConnector.animationPlayer = null;
-        }
+    public void ToggleInvKin(bool toggle, int settingIndex, NodePath target) {
+        this.inverseKin.Active = toggle;
+        this.inverseKin.SetTargetNode(settingIndex, target);
     }
 
     // Receiver
@@ -126,77 +60,9 @@ public partial class DeformingPart : Part {
         BoneAttachment3D receiverSocket = connector.activeCollider.GetBoundCollider().GetParentOrNull<BoneAttachment3D>();
         connector.Reparent(receiverSocket);
         base.AttachPart(connector);
-        Part topPart = this;
-        while (topPart.activeCollider != null) {
-            topPart = topPart.activeCollider.GetBoundCollider().associatedPart;
+        if (connector is DeformingPart defCon && defCon.inverseKin.GetSettingCount() > 0) {
+            defCon.ToggleInvKin(true, 0, defCon.inverseKin.GetPathTo(receiverSocket));
         }
-        topPart.MergeAnimations(connector);
-    }
-
-    // Receiver = this
-    public override void DetachPart(Part connector) {
-        if (connector is DeformingPart defConnector) {
-            this.animationPlayer.Pause();
-            AnimationPlayer connectorAnimator = new();
-            foreach (string library in this.animationPlayer.GetAnimationLibraryList()) {
-                AnimationLibrary receiverLib = this.animationPlayer.GetAnimationLibrary(library);
-                AnimationLibrary tempConLib = new();
-                string conLibName = connector.UID + "Lib";
-                AnimationLibrary matchingLibrary = this.editor.GetPartAnimationLibrary(connector.UID, conLibName, connector);
-                Print(conLibName);
-                Print("Matching library: ", matchingLibrary);
-                connectorAnimator.AddAnimationLibrary(conLibName, matchingLibrary != null ? matchingLibrary : tempConLib);
-
-                List<string> conChildren = [defConnector.Name.ToString()];
-                foreach (Part p in defConnector.connectedParts) {
-                    conChildren.Add(p.Name.ToString());
-                }
-
-                foreach (string anim in receiverLib.GetAnimationList()) {
-                    Animation receiverAnim = receiverLib.GetAnimation(anim);
-                    Animation newConnectorAnim = new();
-                    int index = 0;
-                    while (index < receiverAnim.GetTrackCount()) {
-                        NodePath trackPath = receiverAnim.TrackGetPath(index);
-                        List<string> pathNames = [.. trackPath.GetConcatenatedNames().Split("/")];
-                        bool removal = false;
-                        foreach (string connectorName in conChildren) {
-                            if (pathNames.Contains(connectorName)) {
-
-                                if (matchingLibrary == null) {
-                                    // Fix path name for detached part
-                                    int partNameIndex = pathNames.IndexOf(connectorName);
-                                    string[] p = pathNames.Select((item, index) => new { Item = item, Index = index })
-                                        .Where(x => x.Index > partNameIndex)
-                                        .Select(x => x.Item)
-                                        .ToArray();
-                                    string newPathName = String.Join("/", p);
-                                    newPathName += ":" + trackPath.GetConcatenatedSubNames();
-
-                                    receiverAnim.TrackSetPath(index, newPathName);
-                                    receiverAnim.CopyTrack(index, newConnectorAnim);
-                                    Print("Animation added to: ", connectorName, " ", anim, " ", newPathName);
-                                }
-                                removal = true;
-                                receiverAnim.RemoveTrack(index);
-                                break;
-                            }
-                        }
-
-                        if (removal == false) { index++; }
- 
-                    }
-                    if (newConnectorAnim.GetTrackCount() > 0 && matchingLibrary == null) {
-                        string conAnimName = connector.UID + (string)receiverAnim.GetMeta("AnimationGroup");
-                        newConnectorAnim.SetMeta("AnimationGroup", receiverAnim.GetMeta("AnimationGroup"));
-                        connectorAnimator.GetAnimationLibrary(conLibName).AddAnimation(conAnimName, newConnectorAnim);
-                    }
-                }
-            }
-            defConnector.animationPlayer = connectorAnimator;
-            defConnector.AddChild(connectorAnimator);
-        }
-        base.DetachPart(connector);
     }
 
     public override void Selected() {
@@ -219,7 +85,9 @@ public partial class DeformingPart : Part {
     }
 
     public override void MoveSelected() {
-        base.MoveSelected();
+        if (this.inverseKin.GetSettingCount() > 0) {
+            ToggleInvKin(false, 0, null);
+        }
 
         foreach (Node node in this.skeleton.GetChildren().OfType<BoneAttachment3D>().SelectMany(x => x.GetChildren())) {
             if (node is PartCollider collider) {
@@ -227,6 +95,8 @@ public partial class DeformingPart : Part {
             }
             this.activeCollider?.ToggleLinkVisibility(true);
         }
+        base.MoveSelected();
+
     }
 
     public override void AddPartCollider(PartCollider collider, MeshInstance3D quad) {
@@ -234,13 +104,36 @@ public partial class DeformingPart : Part {
         b.AddChild(collider);
     }
 
-    public override void _Ready() {
-        this.skeleton = this.GetChildren().OfType<Skeleton3D>().FirstOrDefault();
-        this.inverseKin = new();
+    public void InitInvKin() {
+        this.inverseKin = new() { MinDistance = 0.1f, AngularDeltaLimit = 4.0f, Active = false };
+
+        int[] parentless = this.skeleton.GetParentlessBones();
+        int realRoot = this.skeleton.GetBoneName(parentless[0]) == "neutral_bone" ? parentless[1] : parentless[0];
+        BoneAttachment3D[] attachments = this.skeleton.GetChildren().OfType<BoneAttachment3D>().ToArray();
+        foreach (BoneAttachment3D attachment in attachments) {
+            AlignmentPlane p = attachment.GetChildren().OfType<AlignmentPlane>().First();
+            // Leaf bone connector
+            if (p.GetMeta("MeshType").AsString() == "Connector" && this.skeleton.GetBoneChildren(attachment.BoneIdx).Length == 0) {
+                int count = this.inverseKin.GetSettingCount();
+                this.inverseKin.SetSettingCount(count + 1);
+                this.inverseKin.SetRootBone(count, realRoot);
+                this.inverseKin.SetEndBone(count, attachment.BoneIdx);
+
+            }
+        }
         this.skeleton.AddChild(this.inverseKin);
+    }
+
+    public override void _Ready() {
+        this.skeleton ??= this.GetChildren().OfType<Skeleton3D>().First();
+        InitInvKin();
         this.bindingQuads = [..
             this.skeleton.GetChildren().OfType<BoneAttachment3D>().SelectMany(x => x.GetChildren()).OfType<AlignmentPlane>()
             ];
         base._Ready();
+        BoneAttachment3D attParent = this.GetParentOrNull<BoneAttachment3D>();
+        if (attParent != null && this.inverseKin.GetSettingCount() > 0) {
+            ToggleInvKin(true, 0, this.inverseKin.GetPathTo(attParent));
+        }
     }
 }

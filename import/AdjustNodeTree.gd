@@ -4,12 +4,7 @@
 #
 #var partScriptNames
 #
-#func _scriptCheck(script) -> String:
-	#var className = script.resource_path.get_file().get_basename()
-	#if script is CSharpScript:
-		#return className
-	#return ""
-	#
+
 #func _isAlignmentPlane(node : Node, planeType : String) -> bool:
 	#var nodeScript = node.get_script()
 	#return nodeScript and nodeScript.resource_path.get_file()\

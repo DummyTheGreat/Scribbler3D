@@ -1,8 +1,0 @@
-[gd_scene format=3 uid="uid://uyc7mmcmsuln"]
-
-[ext_resource type="Script" uid="uid://xhd011b3vuff" path="res://src/Things/Thing.cs" id="1_8natu"]
-[ext_resource type="Resource" uid="uid://c85wpjr3pu77i" path="res://src/Things/Data/Resources/Pigeon.tres" id="2_i8fsp"]
-
-[node name="Pigeon" type="Node3D" unique_id=1782951810]
-script = ExtResource("1_8natu")
-thingData = ExtResource("2_i8fsp")

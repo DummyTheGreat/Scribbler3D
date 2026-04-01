@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://dudk3a8xk600"]
+
+[ext_resource type="Script" uid="uid://cpfutehto8304" path="res://src/UI/BoneAxisSelect.cs" id="1_qv0a3"]
+
+[node name="BoneAxisSelect" type="HBoxContainer" unique_id=836250957]
+anchors_preset = -1
+anchor_right = 0.1
+anchor_bottom = 0.06
+script = ExtResource("1_qv0a3")
+
+[node name="X" type="Button" parent="." unique_id=1693744404]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "X"
+
+[node name="Y" type="Button" parent="." unique_id=1799863744]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "Y"
+
+[node name="Z" type="Button" parent="." unique_id=74153158]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "Z"

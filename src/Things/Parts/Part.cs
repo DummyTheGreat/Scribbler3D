@@ -1,8 +1,10 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using static Godot.GD;
+using static System.Formats.Asn1.AsnWriter;
 
 public partial class Part : Node3D {
 
@@ -11,14 +13,13 @@ public partial class Part : Node3D {
 
     public Part parentPart;
     public Godot.Collections.Array<Part> connectedParts = [];
-    public int depth;
 
     public StringName UID;
-    public NodePath pathToReceiver;
     public AnimationPlayer animationPlayer;
     public PackedScene duplicateScene;
 
     private Material selectionGlowMaterial;
+    private Material secondarySelectionGlowMaterial;
 
     // This doesn't change until the part a new Thing is CREATED, not just when the part connects to another
     public Thing thing;
@@ -38,88 +39,61 @@ public partial class Part : Node3D {
 
     public ThingEditor editor;
 
-    private static Basis MakeRightHanded(Basis b) {
-        //b = b.Orthonormalized();
-        if (b.Determinant() < 0f) {
-            // Flip one axis to remove the reflection (choose X by convention)
-            b.X = -b.X;
+    public partial class ImportData : Resource {
+
+        public NodePath receiverPath;
+        public Godot.Collections.Array<Resource> boneData;
+
+        public ImportData(Resource pData) {
+            this.receiverPath = pData.Get("receiver").AsNodePath();
+            this.boneData = pData.Get("boneData").AsGodotArray<Resource>();
         }
-        return b;
     }
 
-    // This is going to be called a lot so it should be optimized
+    public ImportData importData;
+
+    public virtual ImportData CreateImportData(Resource partImportData) {
+        this.importData = new(partImportData);
+        return this.importData;
+    }
+
+
+    // This is going to be called a lot so it should be optimized wherever possible
     public static Transform3D CalculateJoinTransform(AlignmentPlane connectingPlane, AlignmentPlane receivingPlane, Transform3D connectorGlobalPos) {
 
-        static Vector3 ProjectOntoPlane(Vector3 v, Vector3 n) => v - n * n.Dot(v);
-
-        // Get the receiver's points of interest in global format
-        Vector3 centerBWorld = receivingPlane.GlobalTransform * receivingPlane.GetCentroid();
         Vector3 frontBWorld = receivingPlane.GlobalTransform * receivingPlane.GetFront();
 
-        // receiver plane B's global normal
-        Basis nmB = receivingPlane.GlobalTransform.Basis.Inverse().Transposed();
-        Vector3 normalBWorld = (nmB * receivingPlane.GetLocalNormal()).Normalized();
-
-        // The objective is for plane A to lay facing plane B so its normal (up basis) should face plane B's normal
-        Vector3 upBWorld = (-normalBWorld).Normalized();
-        // Target forward basis of receiving plane
-        Vector3 forwardBWorld = ProjectOntoPlane(frontBWorld - centerBWorld, normalBWorld).Normalized();
-        Vector3 rightBWorld = upBWorld.Cross(forwardBWorld).Normalized();
-
-        Basis targetBasisW = new(rightBWorld, upBWorld, forwardBWorld);
-
-        Basis aLocalFrame = connectingPlane.GetLocalFrame();
         Basis recLocalFrame = receivingPlane.GetLocalFrame();
+        Basis aLocalFrame = connectingPlane.GetLocalFrame();
 
+        // Pure local dimension ratio — receiver world scale already lives in GlobalTransform.Basis
         Vector2 conDims = connectingPlane.GetDimensions();
-
-        // Need to account for Global transformation of the receiver plane due to custom bone scaling
-        Vector2 recLocalDims = receivingPlane.GetDimensions();
-        Basis recBasis = receivingPlane.GlobalTransform.Basis;
-        float recWorldScaleX = (recBasis * recLocalFrame.X).Length();
-        float recWorldScaleZ = (recBasis * recLocalFrame.Z).Length();
-        Vector2 recDims = new (recLocalDims.X * recWorldScaleX, recLocalDims.Y * recWorldScaleZ);
-
+        Vector2 recDims = receivingPlane.GetDimensions();
         float sx = (conDims.X > 1e-8f) ? (recDims.X / conDims.X) : 1f;
         float sz = (conDims.Y > 1e-8f) ? (recDims.Y / conDims.Y) : 1f;
-
-        // scale only in-plane axes of the *target frame*
-        Basis S = new (
-            new Vector3(sx, 0, 0),
-            new Vector3(0, 1, 0),
+        Basis S = new(
+            new Vector3(sx, 0, 0), 
+            new Vector3(0, 1, 0), 
             new Vector3(0, 0, sz)
-        );
+            );
 
-        // Desired global basis for plane A
-        Basis desiredQuadABasisW = targetBasisW * S * aLocalFrame.Inverse();
+        // receiver world basis * receiver local frame * flip * scale * inverse connector local frame
+        // Reading right to left: rotate out of connector frame, scale, flip normal,
+        // rotate into receiver local frame, apply receiver full world basis (includes bone scale)
+        Basis desiredQuadABasisW = receivingPlane.GlobalTransform.Basis * recLocalFrame * S * aLocalFrame.Inverse();
 
-        // Matches front vertices and origins together for positional correctness
+        // Pin connector's front vertex to receiver's front vertex
         Vector3 desiredQuadAOriginW = frontBWorld - (desiredQuadABasisW * connectingPlane.GetFront());
         Transform3D desiredQuadAGlobal = new(desiredQuadABasisW, desiredQuadAOriginW);
 
-        // Convert the Transform3D to be relative to this Part and not it's child quad so that this Part will transform properly
+        // Convert to Part-relative transform
         Transform3D quadInPart = connectorGlobalPos.AffineInverse() * connectingPlane.GlobalTransform;
-        // Strip bone scale so it isn't inverted into the part transform;
-        // the scale relationship is already handled by S above
-        Basis quadRotationOnly = quadInPart.Basis.Orthonormalized();
-        Transform3D quadInPartNoScale = new(quadRotationOnly, quadInPart.Origin);
-        return desiredQuadAGlobal * quadInPartNoScale.AffineInverse();
-
-        //Transform3D quadInPart = connectorGlobalPos.AffineInverse() * connectingPlane.GlobalTransform;
-        //return desiredQuadAGlobal * quadInPart.AffineInverse();
-    }
-
-    private Part GetParentPart() {
-        return this.parentPart;
+        return desiredQuadAGlobal * quadInPart.AffineInverse();
     }
 
     public void ToggleEditorMode() {
         this.editorMode = !this.editorMode;
         EstablishColliders();
-    }
-
-    public void SetDrag(bool d) {
-        this.dragging = d;
     }
 
     public virtual MeshInstance3D GetSkinMesh() {
@@ -132,39 +106,58 @@ public partial class Part : Node3D {
         if (!this.connectedParts.Contains(connector)) {
             this.connectedParts.Add(connector);
         }
+        Part topPart = this;
+        while (topPart.activeCollider != null) {
+            topPart = topPart.activeCollider.GetBoundCollider().associatedPart;
+        }
+        topPart.MergeAnimations(connector);
     }
 
     // Receiver
     public virtual void DetachPart(Part connector) {
+        SplitAnimations(connector);
         connector.Reparent(this.editor.GetEditorSpace());
         connector.parentPart = null;
         this.connectedParts.Remove(connector);
+        connector.Scale = new Vector3(1, 1, 1);
     }
 
     public virtual void Unselected() {
-        int surfaceCount = this.skinMesh.GetSurfaceOverrideMaterialCount();
-        for (int i = 0; i < surfaceCount; i++) {
-            this.skinMesh.SetSurfaceOverrideMaterial(i, null);
-        }
-    }
+        static void TraverseAll(Part part) {
+            int surfaceCount = part.skinMesh.GetSurfaceOverrideMaterialCount();
+            for (int i = 0; i < surfaceCount; i++) {
+                part.skinMesh.SetSurfaceOverrideMaterial(i, null);
+            }
 
-    public virtual void StopSelected() {
-        if (this.activeCollider != null) {
-            JoiningInitialization();
-            this.joining = true;
-            this.activeCollider.GetBoundCollider().associatedPart.receiving = true;
+            foreach (Part child in part.connectedParts) {
+                TraverseAll(child);
+            }
         }
-        else {
-            // Add animations to selectable list, it is now a top part
-            this.editor.AddTopPartAnimationsToList(this);
+
+        Part topPart = this;
+        while (topPart.activeCollider != null) {
+            topPart = topPart.activeCollider.GetBoundCollider().associatedPart;
         }
+        TraverseAll(topPart);
     }
 
     public virtual void Selected() {
-        int surfaceCount = this.skinMesh.GetSurfaceOverrideMaterialCount();
-        for (int i = 0; i < surfaceCount; i++) {
-            this.skinMesh.SetSurfaceOverrideMaterial(i, this.selectionGlowMaterial);
+        static void TraverseAll(Part part, Part primary) {
+            int surfaceCount = part.skinMesh.GetSurfaceOverrideMaterialCount();
+            for (int i = 0; i < surfaceCount; i++) {
+                part.skinMesh.SetSurfaceOverrideMaterial(i, part == primary ? part.selectionGlowMaterial : part.secondarySelectionGlowMaterial);
+            }
+
+            foreach (Part child in part.connectedParts) {
+                TraverseAll(child, primary);
+            }
         }
+
+        Part topPart = this;
+        while (topPart.activeCollider != null) {
+            topPart = topPart.activeCollider.GetBoundCollider().associatedPart;
+        }
+        TraverseAll(topPart, this);
     }
 
     public virtual void MoveSelected() {
@@ -178,44 +171,219 @@ public partial class Part : Node3D {
             receiverPart.CallDeferred(nameof(DetachPart), this);
         }
     }
-    public virtual void DoAnimation(StringName animationLibrary, StringName animation) { }
 
-    public virtual void MergeAnimations(Part connector) { }
+    public virtual void StopSelected() {
+        if (this.activeCollider != null) {
+            JoiningInitialization();
+            this.joining = true;
+            this.activeCollider.GetBoundCollider().associatedPart.receiving = true;
+        }
+    }
 
-    public void PreparePart(AlignmentPlane connector, AlignmentPlane receiver, Node parent, Thing partThing, ThingEditor partEditor, Part dupe) {
+    public void DoAnimation(StringName animationLibrary, StringName animation) {
+        string name = animationLibrary + "/" + animation;
+        if (this.animationPlayer.IsPlaying() && this.animationPlayer.CurrentAnimation.Equals(name)) {
+            this.animationPlayer.Stop();
+        }
+        else {
+            this.animationPlayer.Play(name);
+        }
+    }
+
+    private static void AddNewLibrary(AnimationLibrary newLib, Part newLibOwner) {
+        string newLibName =
+            "Library" +
+            newLibOwner.GetMeta("ThingName").AsString() +
+            newLibOwner.GetMeta("PartName").AsString() +
+            (newLibOwner.GetMeta("IsMirror").AsBool() ? "Mirror" : "") +
+            "_V" + newLibOwner.GetMeta("PartVariant").AsString() +
+            "_I" + newLibOwner.GetMeta("Instance").AsString();
+        newLib.SetMeta("Instance", newLibOwner.GetMeta("Instance").AsInt32());
+        newLibOwner.animationPlayer.AddAnimationLibrary(newLibName, newLib);
+    }
+
+    private static void AddNewAnimation(AnimationLibrary lib, Animation oldAnim, Animation newAnim, Part newAnimOwner) {
+        newAnim.LoopMode = Animation.LoopModeEnum.Linear;
+        string animationGroup = oldAnim.GetMeta("AnimationGroup").AsString();
+        string newAnimName =
+            "Animation" +
+            newAnimOwner.GetMeta("ThingName").AsString() +
+            newAnimOwner.GetMeta("PartName").AsString() +
+            (newAnimOwner.GetMeta("IsMirror").AsBool() ? "Mirror" : "") +
+            animationGroup +
+            "_V" + newAnimOwner.GetMeta("PartVariant").AsString() +
+            "_I" + newAnimOwner.GetMeta("Instance").AsString();
+        newAnim.SetMeta("AnimationGroup", animationGroup);
+        newAnim.SetMeta("Instance", newAnimOwner.GetMeta("Instance").AsInt32());
+        lib.AddAnimation(newAnimName, newAnim);
+    }
+
+    public void MergeAnimations(Part connector) {
+        while (connector.animationPlayer.GetAnimationLibraryList().Count > 0) {
+            StringName conLibStr = connector.animationPlayer.GetAnimationLibraryList().First();
+            AnimationLibrary conLib = connector.animationPlayer.GetAnimationLibrary(conLibStr);
+
+            foreach (StringName conAnimStr in conLib.GetAnimationList()) {
+                //StringName conAnimStr = conLib.GetAnimationList().First();
+                Animation conAnim = conLib.GetAnimation(conAnimStr);
+                string conAnimGroup = conAnim.GetMeta("AnimationGroup").AsString();
+                bool match = false;
+
+                // Match by animation group
+                foreach (string recAnimStr in this.animationPlayer.GetAnimationList()) {
+                    Animation recAnim = this.animationPlayer.GetAnimation(recAnimStr);
+                    string recAnimGroup = recAnim.GetMeta("AnimationGroup").AsString();
+
+                    if (conAnimGroup.Equals(recAnimGroup)) {
+                        // Merge
+                        Print("Animation Merge");
+                        for (int i = 0; i < conAnim.GetTrackCount(); i++) {
+                            NodePath oldPath = conAnim.TrackGetPath(i);
+                            string newPath = this.GetPathTo(connector).GetConcatenatedNames() + "/" + conAnim.TrackGetPath(i).ToString();
+                            conAnim.TrackSetPath(i, newPath);
+                            conAnim.CopyTrack(i, recAnim);
+                            conAnim.TrackSetPath(i, oldPath);
+                        }
+                        match = true;
+                        break;
+                    }
+                }
+
+                // There is no matching animation group in the receiver's animation list so create create new receiver animation
+                if (!match) {
+
+                    Godot.Collections.Array<StringName> recLibs = this.animationPlayer.GetAnimationLibraryList();
+                    AnimationLibrary recLib;
+
+                    if (recLibs.Count > 1) {  }
+                    switch (recLibs.Count) {
+                        case 0:
+                            recLib = new();
+                            AddNewLibrary(recLib, this);
+                            break;
+                        case 1:
+                            recLib = this.animationPlayer.GetAnimationLibrary(recLibs.First());
+                            break;
+                        default:
+                            Print("Why in the hell is there more than one library");
+                            recLib = this.animationPlayer.GetAnimationLibrary(recLibs.First());
+                            break;
+                    }
+
+                    Animation newRecAnim = new();
+                    Print("New Animation");
+                    // Copy tracks
+                    for (int i = 0; i < conAnim.GetTrackCount(); i++) {
+                        NodePath oldPath = conAnim.TrackGetPath(i);
+                        string newPath = this.GetPathTo(connector).GetConcatenatedNames() + "/" + conAnim.TrackGetPath(i).ToString();
+                        conAnim.TrackSetPath(i, newPath);
+                        conAnim.CopyTrack(i, newRecAnim);
+                        conAnim.TrackSetPath(i, oldPath);
+                    }
+
+                    AddNewAnimation(recLib, conAnim, newRecAnim, this);
+                }
+
+                // All duplicated parts share the same library. Only delete animations if this is the last remaining copy referencing the library
+                conLib.RemoveAnimation(conAnimStr);
+            }
+
+            connector.animationPlayer.RemoveAnimationLibrary(conLibStr);
+        }
+
+        //foreach (defConnector.animationPlayer.GetAnimationLibraryList()
+        connector.RemoveChild(connector.animationPlayer);
+        connector.animationPlayer.QueueFree();
+        connector.animationPlayer = null;
+    }
+
+    public void SplitAnimations(Part connector) {
+        this.animationPlayer.Pause();
+        AnimationPlayer connectorAnimator = new();
+        connector.animationPlayer = connectorAnimator;
+        foreach (string library in this.animationPlayer.GetAnimationLibraryList()) {
+            AnimationLibrary receiverLib = this.animationPlayer.GetAnimationLibrary(library);
+            AnimationLibrary newConLib = new();
+            AddNewLibrary(newConLib, connector);
+
+            List<string> conChildren = [connector.Name.ToString()];
+            foreach (Part p in connector.connectedParts) {
+                conChildren.Add(p.Name.ToString());
+            }
+
+            foreach (string anim in receiverLib.GetAnimationList()) {
+                Animation receiverAnim = receiverLib.GetAnimation(anim);
+                Animation newConnectorAnim = new();
+                int index = 0;
+                while (index < receiverAnim.GetTrackCount()) {
+                    NodePath trackPath = receiverAnim.TrackGetPath(index);
+                    List<string> pathNames = [.. trackPath.GetConcatenatedNames().Split("/")];
+                    bool removal = false;
+                    foreach (string connectorName in conChildren) {
+                        if (pathNames.Contains(connectorName)) {
+
+                            // Fix path name for detached part
+                            int partNameIndex = pathNames.IndexOf(connectorName);
+                            string[] p = pathNames.Select((item, index) => new { Item = item, Index = index })
+                                .Where(x => x.Index > partNameIndex)
+                                .Select(x => x.Item)
+                                .ToArray();
+                            string newPathName = String.Join("/", p);
+                            newPathName += ":" + trackPath.GetConcatenatedSubNames();
+
+                            receiverAnim.TrackSetPath(index, newPathName);
+                            receiverAnim.CopyTrack(index, newConnectorAnim);
+                            Print("Animation added to: ", connectorName, " ", anim, " ", newPathName);
+                            removal = true;
+                            receiverAnim.RemoveTrack(index);
+                            break;
+                        }
+                    }
+
+                    if (removal == false) { index++; }
+
+                }
+                if (newConnectorAnim.GetTrackCount() > 0) {
+                    AddNewAnimation(newConLib, receiverAnim, newConnectorAnim, connector);
+                }
+            }
+        }
+        connector.AddChild(connectorAnimator);
+    }
+
+    public void PreparePart(AlignmentPlane connector, AlignmentPlane receiver, Node parent, Thing partThing, ThingEditor partEditor) {
         this.thing = partThing;
         this.editor = partEditor;
         string partName = this.GetMeta("PartName").AsString();
         string thingName = this.GetMeta("ThingName").AsString();
+        int variantNum = this.GetMeta("PartVariant").AsInt32();
         bool isMirror = this.GetMeta("IsMirror").AsBool();
         this.UID = thingName + partName + (isMirror ? "Mirror" : "");
 
         int trackedCount = partEditor.GetTrackedCount(this);
-        this.SetMeta("VariantNumber", this.GetMeta("VariantNumber").AsInt32() + 1);
-        this.Name = "Part_" + thingName + "_" + partName + "_" + (trackedCount + 1).ToString() + (isMirror ? "_Mirror" : "");
-
-        partEditor.AddToTracker(this);
+        this.Name = "Part_" + thingName + "_" + partName + (isMirror ? "_Mirror" : "") + "_V" + variantNum.ToString() + "_I" + (trackedCount + 1).ToString();
 
         this.animationPlayer = this.GetChildren().OfType<AnimationPlayer>().FirstOrDefault();
-        Print(this.animationPlayer, " ", this.Name);
+        partEditor.AddToTracker(this);
+
         if (parent is Part partParent) {
             receiver.AddSibling(this);
             this.parentPart = partParent;
             partParent.connectedParts.Add(this);
-            this.depth = partParent.depth + 1;
             Part topPart = partParent;
 
             while (topPart.parentPart != null) {
                 topPart = topPart.parentPart;
-                Print(topPart);
             }
-            if (this.animationPlayer != null) {
-                topPart.MergeAnimations(this);
+
+            if (this.animationPlayer == null) { 
+                this.animationPlayer = new();
+                this.AddChild(this.animationPlayer);
             }
+            topPart.MergeAnimations(this);
         }
         else {
             parent.AddChild(this);
-            this.depth = dupe == null ? 0 : dupe.depth;
         }
         ToggleEditorMode();
         if (receiver != null) {
@@ -243,7 +411,7 @@ public partial class Part : Node3D {
     }
 
     // Signal function recieved from PartCollider
-    private void PartConnect(PartCollider newCollider) {
+    public void PartConnect(PartCollider newCollider) {
         Print("Part Connect");
         this.activeCollider = newCollider;
     }
@@ -275,8 +443,10 @@ public partial class Part : Node3D {
             Vector3 planeNormal = (normalMatrix * quad.GetLocalNormal()).Normalized();
 
             // If normal points inward then flip the local normal
-            if (planeNormal.Dot(partOutWorld) < 0f) {
+            if ((planeNormal.Dot(partOutWorld) < 0f && quad.GetMeta("MeshType").AsString() == "Connector") ||
+                (planeNormal.Dot(partOutWorld) >= 0f && quad.GetMeta("MeshType").AsString() == "Receiver")) {
                 quad.FlipNormal();
+                Print("Flip: ", quad.Name);
                 planeNormal = -planeNormal;
             }
 
@@ -318,6 +488,7 @@ public partial class Part : Node3D {
 
         this.skinMesh = GetSkinMesh();
         this.selectionGlowMaterial = Load<Material>("src/Materials/SelectionGlowMaterial.tres");
+        this.secondarySelectionGlowMaterial = Load<Material>("src/Materials/SecondarySelectionGlow.tres");
     }
 
     public override void _Process(double delta) {

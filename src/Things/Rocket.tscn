@@ -1,8 +1,0 @@
-[gd_scene format=3 uid="uid://4f70are5wwle"]
-
-[ext_resource type="Script" uid="uid://xhd011b3vuff" path="res://src/Things/Thing.cs" id="1_54ekq"]
-[ext_resource type="Resource" uid="uid://jx0uky4oqaji" path="res://src/Things/Data/Resources/Rocket.tres" id="2_lcdt5"]
-
-[node name="Rocket" type="Node3D" unique_id=1529764365]
-script = ExtResource("1_54ekq")
-thingData = ExtResource("2_lcdt5")

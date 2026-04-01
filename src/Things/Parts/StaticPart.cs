@@ -23,9 +23,10 @@ public partial class StaticPart : Part
     }
 
     // Receiver
-    public override void AttachPart(Part connector) { 
+    public override void AttachPart(Part connector) {
+        Node receiverGroup = connector.activeCollider.GetBoundCollider().GetParentOrNull<Node>();
+        connector.Reparent(receiverGroup);
         base.AttachPart(connector);
-        connector.Reparent(this);
     }
 
     // Receiver
@@ -34,7 +35,7 @@ public partial class StaticPart : Part
     }
 
     public override void StopSelected() {
-        foreach (Node node in this.GetChildren()) {
+        foreach (Node node in this.GetChildren().SelectMany(x => x.GetChildren())) {
             if (node is PartCollider collider) {
                 collider.ToggleAreaDetection(false);
             }
@@ -44,7 +45,7 @@ public partial class StaticPart : Part
 
     public override void MoveSelected() {
         base.MoveSelected();
-        foreach (Node node in this.GetChildren()) {
+        foreach (Node node in this.GetChildren().SelectMany(x => x.GetChildren())) {
             if (node is PartCollider collider) {
                 collider.ToggleAreaDetection(true);
             }
@@ -53,11 +54,12 @@ public partial class StaticPart : Part
     }
 
     public override void AddPartCollider(PartCollider collider, MeshInstance3D quad) {
-        this.AddChild(collider);
+        Node group = this.GetChildren().Where(x => x.GetChildren().Contains(quad)).FirstOrDefault();
+        group.AddChild(collider);
     }
 
     public override void _Ready() {
-        this.bindingQuads = [.. this.GetChildren().Where(x => x is AlignmentPlane mesh).Cast<AlignmentPlane>().ToList()];
+        this.bindingQuads = [.. this.GetChildren().SelectMany(x => x.GetChildren()).OfType<AlignmentPlane>()];
         base._Ready();
     }
 }

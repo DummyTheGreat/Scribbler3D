@@ -1,0 +1,285 @@
+[gd_resource type="Resource" script_class="ThingData" format=3]
+
+[ext_resource type="Script" path="res://src/Things/Parts/Data/PartRequirement.gd" id="1_lwunt"]
+[ext_resource type="Script" path="res://src/Things/Parts/Data/partData.gd" id="2_mbome"]
+[ext_resource type="Script" path="res://src/Things/Parts/Data/partBoneData.gd" id="3_prkth"]
+[ext_resource type="PackedScene" path="res://assets/Models/Human/Human_Torso_Model.glb" id="4_qjgu2"]
+[ext_resource type="PackedScene" path="res://assets/Models/Human/Human_Pelvis_Model.glb" id="5_o68ad"]
+[ext_resource type="PackedScene" path="res://assets/Models/Human/Human_Leg_Model.glb" id="6_wdnf3"]
+[ext_resource type="PackedScene" path="res://assets/Models/Human/Human_Head_Model.glb" id="7_2kqh0"]
+[ext_resource type="PackedScene" path="res://assets/Models/Human/Human_Arm_Model.glb" id="8_hfvgq"]
+[ext_resource type="Script" path="res://src/Things/Data/ThingData.gd" id="9_op0vl"]
+
+[sub_resource type="Resource" id="Resource_n6ejn"]
+script = ExtResource("3_prkth")
+
+[sub_resource type="Resource" id="Resource_8ym4j"]
+script = ExtResource("3_prkth")
+boneIndex = 1
+yScale = 0.99999994
+zScale = 1.0000359
+
+[sub_resource type="Resource" id="Resource_vhjl2"]
+script = ExtResource("3_prkth")
+boneIndex = 2
+yScale = 0.9999999
+zScale = 1.0000358
+
+[sub_resource type="Resource" id="Resource_m243w"]
+script = ExtResource("3_prkth")
+boneIndex = 3
+
+[sub_resource type="Resource" id="Resource_sbt7r"]
+script = ExtResource("3_prkth")
+boneIndex = 4
+yScale = 1.0000001
+
+[sub_resource type="Resource" id="Resource_5diis"]
+script = ExtResource("3_prkth")
+boneIndex = 5
+yScale = 1.0000001
+
+[sub_resource type="Resource" id="Resource_kobeo"]
+script = ExtResource("3_prkth")
+boneIndex = 6
+xScale = 1.6
+yScale = 1.5
+zScale = 1.45
+
+[sub_resource type="Resource" id="Resource_d4buf"]
+script = ExtResource("3_prkth")
+boneIndex = 7
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_vlfax"]
+script = ExtResource("3_prkth")
+boneIndex = 8
+xScale = 1.65
+yScale = 1.6
+zScale = 1.45
+
+[sub_resource type="Resource" id="Resource_jcivl"]
+script = ExtResource("3_prkth")
+boneIndex = 9
+xScale = 0.9999999
+yScale = 0.99999994
+zScale = 0.9999999
+
+[sub_resource type="Resource" id="Resource_syyt6"]
+script = ExtResource("2_mbome")
+name = "Torso"
+boneData = Array[ExtResource("3_prkth")]([SubResource("Resource_n6ejn"), SubResource("Resource_8ym4j"), SubResource("Resource_vhjl2"), SubResource("Resource_m243w"), SubResource("Resource_sbt7r"), SubResource("Resource_5diis"), SubResource("Resource_kobeo"), SubResource("Resource_d4buf"), SubResource("Resource_vlfax"), SubResource("Resource_jcivl")])
+
+[sub_resource type="Resource" id="Resource_0q5ub"]
+script = ExtResource("1_lwunt")
+partScene = ExtResource("4_qjgu2")
+partData = Array[ExtResource("2_mbome")]([SubResource("Resource_syyt6")])
+
+[sub_resource type="Resource" id="Resource_qyn6s"]
+script = ExtResource("3_prkth")
+
+[sub_resource type="Resource" id="Resource_0nbxi"]
+script = ExtResource("3_prkth")
+boneIndex = 1
+xScale = 0.9999999
+yScale = 0.9999998
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_bwr6i"]
+script = ExtResource("3_prkth")
+boneIndex = 2
+xScale = 0.99999994
+yScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_k0pke"]
+script = ExtResource("3_prkth")
+boneIndex = 3
+xScale = 0.99999964
+yScale = 0.99999976
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_ilk7t"]
+script = ExtResource("3_prkth")
+boneIndex = 4
+xScale = 0.99999976
+yScale = 0.9999998
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_pdmso"]
+script = ExtResource("3_prkth")
+boneIndex = 5
+
+[sub_resource type="Resource" id="Resource_uftqk"]
+script = ExtResource("3_prkth")
+boneIndex = 6
+yScale = 0.9999999
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_x72bn"]
+script = ExtResource("2_mbome")
+name = "Pelvis"
+receiver = NodePath("Skeleton3D/PelvisSocket/Receiver_Human_Pelvis_I1")
+boneData = Array[ExtResource("3_prkth")]([SubResource("Resource_qyn6s"), SubResource("Resource_0nbxi"), SubResource("Resource_bwr6i"), SubResource("Resource_k0pke"), SubResource("Resource_ilk7t"), SubResource("Resource_pdmso"), SubResource("Resource_uftqk")])
+
+[sub_resource type="Resource" id="Resource_3ungq"]
+script = ExtResource("1_lwunt")
+partScene = ExtResource("5_o68ad")
+partData = Array[ExtResource("2_mbome")]([SubResource("Resource_x72bn")])
+
+[sub_resource type="Resource" id="Resource_xbgd8"]
+script = ExtResource("3_prkth")
+
+[sub_resource type="Resource" id="Resource_fpmy0"]
+script = ExtResource("3_prkth")
+boneIndex = 1
+yScale = 0.99999994
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_7bv07"]
+script = ExtResource("3_prkth")
+boneIndex = 2
+xScale = 0.99999994
+yScale = 1.0000002
+
+[sub_resource type="Resource" id="Resource_fu3cf"]
+script = ExtResource("3_prkth")
+boneIndex = 3
+xScale = 0.9999999
+
+[sub_resource type="Resource" id="Resource_85cpa"]
+script = ExtResource("2_mbome")
+name = "Leg"
+receiver = NodePath("Skeleton3D/LegSocket_L/Receiver_Human_Leg_Left_I1")
+boneData = Array[ExtResource("3_prkth")]([SubResource("Resource_xbgd8"), SubResource("Resource_fpmy0"), SubResource("Resource_7bv07"), SubResource("Resource_fu3cf")])
+
+[sub_resource type="Resource" id="Resource_mblwe"]
+script = ExtResource("3_prkth")
+
+[sub_resource type="Resource" id="Resource_2ofbq"]
+script = ExtResource("3_prkth")
+boneIndex = 1
+yScale = 0.99999994
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_ilaiu"]
+script = ExtResource("3_prkth")
+boneIndex = 2
+xScale = 0.99999994
+yScale = 1.0000002
+
+[sub_resource type="Resource" id="Resource_arpw5"]
+script = ExtResource("3_prkth")
+boneIndex = 3
+xScale = 0.9999999
+
+[sub_resource type="Resource" id="Resource_7qq0u"]
+script = ExtResource("2_mbome")
+name = "Leg"
+receiver = NodePath("Skeleton3D/LegSocket_R/Receiver_Human_Leg_Right_I1")
+boneData = Array[ExtResource("3_prkth")]([SubResource("Resource_mblwe"), SubResource("Resource_2ofbq"), SubResource("Resource_ilaiu"), SubResource("Resource_arpw5")])
+
+[sub_resource type="Resource" id="Resource_sgeba"]
+script = ExtResource("1_lwunt")
+partScene = ExtResource("6_wdnf3")
+partData = Array[ExtResource("2_mbome")]([SubResource("Resource_85cpa"), SubResource("Resource_7qq0u")])
+
+[sub_resource type="Resource" id="Resource_oiyci"]
+script = ExtResource("3_prkth")
+xScale = 0.99999994
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_yyr3b"]
+script = ExtResource("3_prkth")
+boneIndex = 1
+xScale = 0.9999999
+zScale = 0.9999999
+
+[sub_resource type="Resource" id="Resource_q2gne"]
+script = ExtResource("3_prkth")
+boneIndex = 2
+yScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_jhi1x"]
+script = ExtResource("2_mbome")
+name = "Head"
+receiver = NodePath("Skeleton3D/NeckSocket/Receiver_Human_Head_I1")
+boneData = Array[ExtResource("3_prkth")]([SubResource("Resource_oiyci"), SubResource("Resource_yyr3b"), SubResource("Resource_q2gne")])
+
+[sub_resource type="Resource" id="Resource_iwhgo"]
+script = ExtResource("1_lwunt")
+partScene = ExtResource("7_2kqh0")
+partData = Array[ExtResource("2_mbome")]([SubResource("Resource_jhi1x")])
+
+[sub_resource type="Resource" id="Resource_j3fas"]
+script = ExtResource("3_prkth")
+
+[sub_resource type="Resource" id="Resource_41tib"]
+script = ExtResource("3_prkth")
+boneIndex = 1
+xScale = 0.9999999
+yScale = 0.9999998
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_wrjoe"]
+script = ExtResource("3_prkth")
+boneIndex = 2
+yScale = 1.0000001
+
+[sub_resource type="Resource" id="Resource_76nl2"]
+script = ExtResource("3_prkth")
+boneIndex = 3
+xScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_j3dbc"]
+script = ExtResource("3_prkth")
+boneIndex = 4
+yScale = 1.0000001
+zScale = 1.0000001
+
+[sub_resource type="Resource" id="Resource_v8u8t"]
+script = ExtResource("2_mbome")
+name = "Arm"
+receiver = NodePath("Skeleton3D/ArmSocket_L/Receiver_Human_Arm_Left_I1")
+boneData = Array[ExtResource("3_prkth")]([SubResource("Resource_j3fas"), SubResource("Resource_41tib"), SubResource("Resource_wrjoe"), SubResource("Resource_76nl2"), SubResource("Resource_j3dbc")])
+
+[sub_resource type="Resource" id="Resource_sxy1a"]
+script = ExtResource("3_prkth")
+
+[sub_resource type="Resource" id="Resource_sem5x"]
+script = ExtResource("3_prkth")
+boneIndex = 1
+xScale = 0.9999999
+yScale = 0.9999998
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_po46m"]
+script = ExtResource("3_prkth")
+boneIndex = 2
+yScale = 1.0000001
+
+[sub_resource type="Resource" id="Resource_imd7d"]
+script = ExtResource("3_prkth")
+boneIndex = 3
+xScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_sd81a"]
+script = ExtResource("3_prkth")
+boneIndex = 4
+yScale = 1.0000001
+zScale = 1.0000001
+
+[sub_resource type="Resource" id="Resource_aonx4"]
+script = ExtResource("2_mbome")
+name = "Arm"
+receiver = NodePath("Skeleton3D/ArmSocket_R/Receiver_Human_Arm_Right_I1")
+boneData = Array[ExtResource("3_prkth")]([SubResource("Resource_sxy1a"), SubResource("Resource_sem5x"), SubResource("Resource_po46m"), SubResource("Resource_imd7d"), SubResource("Resource_sd81a")])
+
+[sub_resource type="Resource" id="Resource_cgdte"]
+script = ExtResource("1_lwunt")
+partScene = ExtResource("8_hfvgq")
+partData = Array[ExtResource("2_mbome")]([SubResource("Resource_v8u8t"), SubResource("Resource_aonx4")])
+
+[resource]
+script = ExtResource("9_op0vl")
+name = "Shoulder"
+parts = Array[ExtResource("1_lwunt")]([SubResource("Resource_0q5ub"), SubResource("Resource_3ungq"), SubResource("Resource_sgeba"), SubResource("Resource_iwhgo"), SubResource("Resource_cgdte")])
