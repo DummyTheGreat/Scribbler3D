@@ -7,9 +7,9 @@ using static Godot.GD;
 public partial class ThingEditor : Control {
 
     private ItemList things;
-    private ThingEditorSpace worldRoot;
-    private Button showAnimations;
-    //private HBoxContainer animationList;
+    private WorldRoot worldRoot;
+
+    private Button goToTestGround;
     private VBoxContainer toolList;
     private Button duplicateSelected;
     private Button deleteSelected;
@@ -21,14 +21,9 @@ public partial class ThingEditor : Control {
     private Button mirrorSelected;
     private QuadList animationList;
     private SubViewportContainer worldContainer;
-
-    private bool animListActive;
     private Theme theme;
-    private Dictionary<StringName, List<Part>> dupeTracker;
 
-    public ThingEditorSpace GetEditorSpace() { return this.worldRoot; }
-
-    public Dictionary<StringName, List<Part>> GetDupeTracker() { return this.dupeTracker; }
+    public Node3D GetRootSpace() { return this.worldRoot.GetChild<Node3D>(0); }
 
     public void AddPartSlidersToToolList(Skeleton3D skeleton) {
 
@@ -45,6 +40,10 @@ public partial class ThingEditor : Control {
                     child.Toggled += (toggle) => slider.SwitchAxis(toggle, child);
                 }
                 toolList.AddChild(slider);
+                Part parent = skeleton.GetParentOrNull<Part>();
+                if (parent != null) {
+                    parent.PartAnimationStatus += slider.ToggleEdit;
+                }
                 skeleton.SetBoneMeta(boneIndex, "Slider", slider);
             }
 
@@ -72,39 +71,6 @@ public partial class ThingEditor : Control {
         }
     }
 
-    public AnimationLibrary GetPartAnimationLibrary(StringName UID, string libName, Part part) {
-        if (!part.editorMode) { return null; }
-
-        // First check if dupes exists, if none exist then the library should not exist either when this is called
-        if (this.dupeTracker.TryGetValue(UID, out List<Part> value)) {
-            foreach (Part matchingPart in value) {
-                // Part is NOT connected to a receiver and thus has its own AnimationPlayer
-                if (matchingPart is DeformingPart pasdf && pasdf.animationPlayer != null) {
-                    Print("Has Duplicate library: ", pasdf.animationPlayer.GetAnimationLibraryList());
-                }
-                if (matchingPart != part && 
-                    matchingPart.activeCollider == null && 
-                    matchingPart is DeformingPart defPart && 
-                    defPart.animationPlayer.HasAnimationLibrary(libName)) {
-                    return defPart.animationPlayer.GetAnimationLibrary(libName);
-                }
-            }
-        }
-        return null;
-    }
-
-    public void AddToTracker(Part part) {
-        if (!this.dupeTracker.TryAdd(part.UID, [part])) {
-            this.dupeTracker[part.UID].Add(part);
-        }
-    }
-
-    public int GetTrackedCount(Part part) {
-        this.dupeTracker.TryGetValue(part.UID, out List<Part> list);
-        if (list == null) { return 0; }
-        return list.Count;
-    }
-
     /** 
      * Signal Function
      * 
@@ -114,23 +80,7 @@ public partial class ThingEditor : Control {
         this.things.SetItemSelectable((int)index, false);
         Print(selected);
         Resource thingData = Load<Resource>("res://src/Things/Data/Resources/" + this.things.GetItemText((int)index) + ".tres");
-        Thing thing = Thing.Create(thingData);
-        Print(thing.Name);
-        thing.Assemble(this.worldRoot, this);
-        // Animation stuff
-        Part[] newChildren = [.. this.worldRoot.GetChildren().OfType<Part>().Where(x => x.thing == thing)];
-        foreach (Part part in newChildren) {
-            if (part.animationPlayer != null) {
-                //AddTopPartAnimationsToList(part);
-            }
-            else {
-                AnimationPlayer placeholder = new();
-                part.AddChild(placeholder);
-                part.animationPlayer = placeholder;
-            }
-
-        }
-
+        this.worldRoot.GetWorldSpace<ThingEditorSpace>().CreateThingChild(thingData);
     }
 
     // Signal when "Duplicate Selected" is pressed
@@ -143,8 +93,7 @@ public partial class ThingEditor : Control {
                 connectorPath == "" ? null : dupe.GetNode<AlignmentPlane>(connectorPath), 
                 receiverPath == "" ? null : parent.GetNode<AlignmentPlane>(receiverPath), 
                 parent, 
-                originalPart.thing, 
-                this);
+                originalPart.thing);
             dupe.duplicateScene = originalPart.duplicateScene;
 
             // Only top part will have/need animation player
@@ -178,10 +127,10 @@ public partial class ThingEditor : Control {
             return String.Join("_", libNameItems);
         }
 
-        Part p = paramPart ?? this.worldRoot.selectedPart;
+        Part p = paramPart ?? this.worldRoot.GetSelected<Part>();
         // For now only allow duplication with singleton parts
         if (p != null && p.parentPart == null) {
-            Part dupe = Duplication(p, this.worldRoot, "", "");
+            Part dupe = Duplication(p, this.worldRoot.GetChild(0), "", "");
 
             AnimationPlayer dupePlayer = new();
             foreach (StringName libName in p.animationPlayer.GetAnimationLibraryList()) {
@@ -244,10 +193,10 @@ public partial class ThingEditor : Control {
     // Signal when "Delete Selected" is pressed
     private void DeleteSelectedPart() {
         
-        static void Delete(Part part, Dictionary<StringName, List<Part>> tracker) {
+        static void Delete(Part part) {
             Part[] childPartList = part.connectedParts.ToArray();
             foreach (Part child in childPartList) {
-                Delete(child, tracker);
+                Delete(child);
             }
             part.Unselected();
             if (part.parentPart != null) {
@@ -259,15 +208,15 @@ public partial class ThingEditor : Control {
                 part.activeCollider.ClearColliderRelation();
             }
             part.GetParent().RemoveChild(part);
-            tracker[part.UID].Remove(part);
+            part.thing.RemoveFromTracker(part);
             part.QueueFree();
         }
 
-        Part p = this.worldRoot.selectedPart;
+        Part p = this.worldRoot.GetSelected<Part>();
         if (p != null) {
 
-            this.worldRoot.selectedPart = null;
-            Delete(p, this.dupeTracker);
+            this.worldRoot.ClearSelected();
+            Delete(p);
         }
     }
 
@@ -283,7 +232,7 @@ public partial class ThingEditor : Control {
     // Signal when "Create New Thing" is pressed
     private void CreateNewThing(string name) {
 
-        Part p = this.worldRoot.selectedPart;
+        Part p = this.worldRoot.GetSelected<Part>();
         if (p != null) {
             Script dataGeneration = Load<Script>("res://import/GenerateThingData.gd");
             Part topPart = p;
@@ -293,7 +242,7 @@ public partial class ThingEditor : Control {
     }
 
     private void ToggleQuadList() {
-        Part p = this.worldRoot.selectedPart;
+        Part p = this.worldRoot.GetSelected<Part>();
         if (p != null) {
 
             if (p.bindingQuads.Count == 1 && p.bindingQuads[0].GetMeta("MeshType").AsString() == "Connector") {
@@ -326,7 +275,7 @@ public partial class ThingEditor : Control {
     }
 
     private void RotatePart(float degrees) {
-        Part p = this.worldRoot.selectedPart;
+        Part p = this.worldRoot.GetSelected<Part>();
         if (p.activeCollider == null) { return; }
         AlignmentPlane connectingPlane = p.activeCollider.plane;
         AlignmentPlane receivingPlane = p.activeCollider.GetBoundCollider().plane;
@@ -336,7 +285,7 @@ public partial class ThingEditor : Control {
     }
 
     private void ToggleAnimationList() {
-        Part p = this.worldRoot.selectedPart;
+        Part p = this.worldRoot.GetSelected<Part>();
         if (p == null) { return; }
 
         this.animationList = Load<PackedScene>("res://src/UI/QuadList.tscn").Instantiate<QuadList>();
@@ -350,27 +299,32 @@ public partial class ThingEditor : Control {
     }
 
     private void MirrorPart() {
-        Part p = this.worldRoot.selectedPart;
+        Part p = this.worldRoot.GetSelected<Part>();
         if (p != null && (p.HasMeta("Mirror") || p.HasMeta("IsMirror"))) {
 
-            bool isMirror = p.GetMeta("IsMirror").AsBool();
-            string partName = p.GetMeta("PartName").AsString();
-            string thingName = p.GetMeta("ThingName").AsString();
-            string mirrorUID = thingName + partName + (isMirror ? "" : "Mirror");
+            PackedScene mirrorPartScene = p.GetMeta("Mirror").As<PackedScene>();
+            Part mirrorPart = mirrorPartScene.Instantiate<Part>();
+            mirrorPart.duplicateScene = mirrorPartScene;
 
-            this.dupeTracker.TryGetValue(mirrorUID, out List<Part> existingMirrors);
-            if (existingMirrors != null && existingMirrors.Count > 0) {
-                DuplicateSelectedPart(existingMirrors.First());
+            if (mirrorPart.thing.GetTrackedCount(mirrorPart) > 0) {
+                DuplicateSelectedPart(mirrorPart);
             }
             else {
-                PackedScene mirrorPartScene = p.GetMeta("Mirror").As<PackedScene>();
-                Part mirrorPart = mirrorPartScene.Instantiate<Part>();
-                mirrorPart.duplicateScene = mirrorPartScene;
-                mirrorPart.PreparePart(null, null, this.worldRoot, p.thing, this);
+                mirrorPart.PreparePart(null, null, this.worldRoot, p.thing);
             }
         }
     }
- 
+
+    private void GoToTestGround() {
+        PackedScene scene = Load<PackedScene>("res://src/World/TestingGround.tscn");
+        this.worldRoot.SwitchState(scene);
+
+        CanvasLayer uiLayer = GetChild<CanvasLayer>(0);
+        uiLayer.Hide();
+        this.worldContainer.SetAnchor(Side.Left, 0.0f, true);
+        this.worldContainer.SetAnchor(Side.Right, 1.0f, true);
+    }
+
     public override void _Ready() {
         CanvasLayer uiLayer = GetChild<CanvasLayer>(0);
         this.things = uiLayer.GetChild<ItemList>(0);
@@ -381,7 +335,10 @@ public partial class ThingEditor : Control {
             this.things.AddItem(dir.Split('.').First());
         }
 
-        this.toolList = uiLayer.GetChild<VBoxContainer>(3);
+        this.goToTestGround = uiLayer.GetChild<Button>(1);
+        this.goToTestGround.Pressed += GoToTestGround;
+
+        this.toolList = uiLayer.GetChild<VBoxContainer>(2);
         this.duplicateSelected = this.toolList.GetChild<Button>(0);
         this.duplicateSelected.Pressed += () => DuplicateSelectedPart();
         this.deleteSelected = this.toolList.GetChild<Button>(1);
@@ -401,10 +358,7 @@ public partial class ThingEditor : Control {
         this.mirrorSelected.Pressed += MirrorPart;
 
         this.worldContainer = this.GetChild<SubViewportContainer>(1);
-        this.worldRoot = this.worldContainer.GetChild<SubViewport>(0).GetChild<ThingEditorSpace>(0);
-        this.animListActive = false;
+        this.worldRoot = this.worldContainer.GetChild<SubViewport>(0).GetChild<WorldRoot>(0);
         this.theme = Load<Theme>("src/UI/Themes/ThingEditor.tres");
-
-        this.dupeTracker = [];
     }
 }

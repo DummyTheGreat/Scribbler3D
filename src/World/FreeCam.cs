@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using static Godot.GD;
 
-public partial class EditorController : Node3D
+public partial class FreeCam : Node3D
 {
     public float LookSensitivity = 0.0025f;
     public float PanSensitivity = 0.01f;
@@ -20,8 +20,8 @@ public partial class EditorController : Node3D
     private bool allowRotate;
     private float zoomAxis;
 
-    public void ToggleInput(bool enable) {
-        SetProcessInput(enable);
+    public void ToggleInput(Part p, bool state) {
+        SetProcessInput(!state);
         this.allowRotate = false;
         this.panning = false;
     }

@@ -46,6 +46,7 @@ public partial class QuadList : HBoxContainer {
             }
         }
 
+        plane.FlipNormal();
 
         if (thisPart is DeformingPart defPart) {
 

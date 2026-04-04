@@ -11,6 +11,9 @@ public partial class Part : Node3D {
     [Signal]
     public delegate void PartPreparedEventHandler();
 
+    [Signal]
+    public delegate void PartAnimationStatusEventHandler(bool status);
+
     public Part parentPart;
     public Godot.Collections.Array<Part> connectedParts = [];
 
@@ -28,16 +31,13 @@ public partial class Part : Node3D {
     public bool receiving;
     public List<AlignmentPlane> bindingQuads;
     public PartCollider activeCollider;
-    public bool editorMode;
+
     public MeshInstance3D skinMesh;
 
-    private bool dragging;
     private PackedScene colliderScene;
     private float t;
     private Transform3D destTransform;
     private Transform3D startTransform;
-
-    public ThingEditor editor;
 
     public partial class ImportData : Resource {
 
@@ -55,6 +55,15 @@ public partial class Part : Node3D {
     public virtual ImportData CreateImportData(Resource partImportData) {
         this.importData = new(partImportData);
         return this.importData;
+    }
+
+    // Get Part at the top of the hierarchy
+    public static Part GetTopPart(Part start) {
+        Part topPart = start;
+        while (topPart.activeCollider != null) {
+            topPart = topPart.activeCollider.GetBoundCollider().associatedPart;
+        }
+        return topPart;
     }
 
 
@@ -92,7 +101,6 @@ public partial class Part : Node3D {
     }
 
     public void ToggleEditorMode() {
-        this.editorMode = !this.editorMode;
         EstablishColliders();
     }
 
@@ -106,17 +114,13 @@ public partial class Part : Node3D {
         if (!this.connectedParts.Contains(connector)) {
             this.connectedParts.Add(connector);
         }
-        Part topPart = this;
-        while (topPart.activeCollider != null) {
-            topPart = topPart.activeCollider.GetBoundCollider().associatedPart;
-        }
-        topPart.MergeAnimations(connector);
+        GetTopPart(this).MergeAnimations(connector);
     }
 
     // Receiver
     public virtual void DetachPart(Part connector) {
         SplitAnimations(connector);
-        connector.Reparent(this.editor.GetEditorSpace());
+        connector.Reparent(GetTopPart(this).GetParent());
         connector.parentPart = null;
         this.connectedParts.Remove(connector);
         connector.Scale = new Vector3(1, 1, 1);
@@ -134,11 +138,7 @@ public partial class Part : Node3D {
             }
         }
 
-        Part topPart = this;
-        while (topPart.activeCollider != null) {
-            topPart = topPart.activeCollider.GetBoundCollider().associatedPart;
-        }
-        TraverseAll(topPart);
+        TraverseAll(GetTopPart(this));
     }
 
     public virtual void Selected() {
@@ -153,22 +153,13 @@ public partial class Part : Node3D {
             }
         }
 
-        Part topPart = this;
-        while (topPart.activeCollider != null) {
-            topPart = topPart.activeCollider.GetBoundCollider().associatedPart;
-        }
-        TraverseAll(topPart, this);
+        TraverseAll(GetTopPart(this), this);
     }
 
     public virtual void MoveSelected() {
         if (this.activeCollider != null && this.GetParent() is not Thing) {
             Part receiverPart = this.activeCollider.GetBoundCollider().associatedPart;
-
-            // Loop to top part
-            while (receiverPart.activeCollider != null) {
-                receiverPart = receiverPart.activeCollider.GetBoundCollider().associatedPart;
-            }
-            receiverPart.CallDeferred(nameof(DetachPart), this);
+            GetTopPart(receiverPart).CallDeferred(nameof(DetachPart), this);
         }
     }
 
@@ -183,9 +174,11 @@ public partial class Part : Node3D {
     public void DoAnimation(StringName animationLibrary, StringName animation) {
         string name = animationLibrary + "/" + animation;
         if (this.animationPlayer.IsPlaying() && this.animationPlayer.CurrentAnimation.Equals(name)) {
+            EmitSignalPartAnimationStatus(true);
             this.animationPlayer.Stop();
         }
         else {
+            EmitSignalPartAnimationStatus(false);
             this.animationPlayer.Play(name);
         }
     }
@@ -351,20 +344,19 @@ public partial class Part : Node3D {
         connector.AddChild(connectorAnimator);
     }
 
-    public void PreparePart(AlignmentPlane connector, AlignmentPlane receiver, Node parent, Thing partThing, ThingEditor partEditor) {
+    public void PreparePart(AlignmentPlane connector, AlignmentPlane receiver, Node parent, Thing partThing) {
         this.thing = partThing;
-        this.editor = partEditor;
         string partName = this.GetMeta("PartName").AsString();
         string thingName = this.GetMeta("ThingName").AsString();
         int variantNum = this.GetMeta("PartVariant").AsInt32();
         bool isMirror = this.GetMeta("IsMirror").AsBool();
         this.UID = thingName + partName + (isMirror ? "Mirror" : "");
 
-        int trackedCount = partEditor.GetTrackedCount(this);
+        int trackedCount = partThing.GetTrackedCount(this);
         this.Name = "Part_" + thingName + "_" + partName + (isMirror ? "_Mirror" : "") + "_V" + variantNum.ToString() + "_I" + (trackedCount + 1).ToString();
 
         this.animationPlayer = this.GetChildren().OfType<AnimationPlayer>().FirstOrDefault();
-        partEditor.AddToTracker(this);
+        partThing.AddToTracker(this);
 
         if (parent is Part partParent) {
             receiver.AddSibling(this);
@@ -480,8 +472,6 @@ public partial class Part : Node3D {
 
     public override void _Ready() {
         this.bindingQuads = this.bindingQuads ?? []; 
-        this.editorMode = false;
-        this.dragging = false;
         this.joining = false;
         this.receiving = false;
         this.colliderScene = Load<PackedScene>("src/Things/Parts/PartCollider.tscn");
@@ -492,7 +482,7 @@ public partial class Part : Node3D {
     }
 
     public override void _Process(double delta) {
-        if (this.editorMode) {
+        if (thing.state == Thing.State.Editor) {
 
             if (this.activeCollider != null && this.joining) {
                 float diffy = 0.001f;

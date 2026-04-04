@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://c3ns6v2m2qksj"]
+
+[ext_resource type="Script" uid="uid://d4mamlv8ii6yx" path="res://src/World/FreeCam.cs" id="1_p25ye"]
+
+[node name="Controller" type="Node3D" unique_id=764495851]
+script = ExtResource("1_p25ye")
+
+[node name="Pivot" type="Node3D" parent="." unique_id=802642929]
+
+[node name="Camera3D" type="Camera3D" parent="Pivot" unique_id=1709837051]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 9.032)

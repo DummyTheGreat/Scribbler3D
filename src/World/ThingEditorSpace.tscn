@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://bvdwuujj6ocah"]
+
+[ext_resource type="Script" uid="uid://chg38uuli87a6" path="res://src/World/ThingEditorSpace.cs" id="1_hsc0k"]
+
+[node name="ThingEditorSpace" type="Node3D" unique_id=915667135]
+script = ExtResource("1_hsc0k")

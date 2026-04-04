@@ -14,9 +14,11 @@ public partial class BoneScaleSlider : HBoxContainer
     private string boneName;
     private int boneIndex;
 
-
     private enum BoneAxis { X, Y, Z }
     private BoneAxis axis;
+
+    public void ToggleEdit(bool status) { this.slider.Editable = status; }
+
 
     public void SwitchAxis(bool toggle, Button axisButton) {
         if (toggle == false) { return; }

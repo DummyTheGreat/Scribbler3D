@@ -24,6 +24,9 @@ using static Godot.GD;
  */
 public partial class DeformingPart : Part {
 
+    [Signal]
+    public delegate void PartSelectedEventHandler(Node3D selected);
+
     public Skeleton3D skeleton;
     public Fabrik3D inverseKin;
 
@@ -66,12 +69,12 @@ public partial class DeformingPart : Part {
     }
 
     public override void Selected() {
-        this.editor.AddPartSlidersToToolList(this.skeleton);
+        this.GetTree().Root.GetChild<ThingEditor>(0).AddPartSlidersToToolList(this.skeleton);
         base.Selected();
     }
 
     public override void Unselected() {
-        this.editor.RemovePartSlidersFromToolList(this.skeleton);
+        this.GetTree().Root.GetChild<ThingEditor>(0).RemovePartSlidersFromToolList(this.skeleton);
         base.Unselected();
     }
 

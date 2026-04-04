@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://b27ffv4cdqq8a"]
+
+[ext_resource type="Script" uid="uid://b4svebjuoxb16" path="res://src/World/TestingGround.cs" id="1_8pybu"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_prn0b"]
+size = Vector2(20, 20)
+
+[sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_8pybu"]
+
+[node name="TestingGround" type="Node3D" unique_id=550880569]
+script = ExtResource("1_8pybu")
+
+[node name="Floor" type="MeshInstance3D" parent="." unique_id=249707920]
+mesh = SubResource("PlaneMesh_prn0b")
+
+[node name="Area3D" type="Area3D" parent="Floor" unique_id=1467534853]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/Area3D" unique_id=1123702494]
+shape = SubResource("WorldBoundaryShape3D_8pybu")

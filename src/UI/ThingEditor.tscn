@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://ys0ss3d6jews"]
 
 [ext_resource type="Script" uid="uid://j4nm7xo383fn" path="res://src/UI/ThingEditor.cs" id="1_nky41"]
-[ext_resource type="Script" uid="uid://chg38uuli87a6" path="res://src/UI/ThingEditorSpace.cs" id="3_0355r"]
-[ext_resource type="Script" uid="uid://d4mamlv8ii6yx" path="res://src/UI/EditorController.cs" id="3_caupk"]
+[ext_resource type="Script" uid="uid://g1b4o43b5vfm" path="res://src/World/WorldRoot.cs" id="2_caupk"]
+[ext_resource type="PackedScene" uid="uid://bvdwuujj6ocah" path="res://src/World/ThingEditorSpace.tscn" id="3_caupk"]
 
 [sub_resource type="Environment" id="Environment_nky41"]
 ambient_light_source = 2
@@ -39,16 +39,7 @@ anchors_preset = -1
 anchor_top = 0.9
 anchor_right = 0.2
 anchor_bottom = 1.0
-text = "Show Animations l>"
-
-[node name="AnimationList" type="HBoxContainer" parent="UI" unique_id=1507923552]
-z_index = 1
-anchors_preset = -1
-anchor_left = 0.2
-anchor_top = 0.9
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 2
+text = "Testing Grounds"
 
 [node name="EditTools" type="VBoxContainer" parent="UI" unique_id=1658168598]
 anchors_preset = -1
@@ -116,18 +107,12 @@ handle_input_locally = false
 size = Vector2i(691, 648)
 render_target_update_mode = 4
 
-[node name="Things" type="Node3D" parent="Editor Window/3DWindow" unique_id=2123047561]
-script = ExtResource("3_0355r")
+[node name="WorldRoot" type="Node3D" parent="Editor Window/3DWindow" unique_id=1775854340]
+script = ExtResource("2_caupk")
 
-[node name="Controller" type="Node3D" parent="Editor Window/3DWindow/Things" unique_id=1472129563]
-script = ExtResource("3_caupk")
+[node name="ThingEditorSpace" parent="Editor Window/3DWindow/WorldRoot" unique_id=915667135 instance=ExtResource("3_caupk")]
 
-[node name="Pivot" type="Node3D" parent="Editor Window/3DWindow/Things/Controller" unique_id=337225462]
-
-[node name="Camera3D" type="Camera3D" parent="Editor Window/3DWindow/Things/Controller/Pivot" unique_id=1213177791]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 9.032)
-
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Editor Window/3DWindow/Things" unique_id=662388926]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Editor Window/3DWindow/WorldRoot" unique_id=662388926]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 19.670753, 0)
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="Editor Window/3DWindow" unique_id=416124105]

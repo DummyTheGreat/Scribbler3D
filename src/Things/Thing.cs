@@ -1,5 +1,4 @@
 using Godot;
-using Godot.Collections;
 using Godot.NativeInterop;
 using System;
 using System.Collections.Generic;
@@ -14,13 +13,37 @@ public partial class Thing : Node3D
     [Export]
     public Resource thingData;
 
-    public static Thing Create(Resource thingData) {
-        Thing thing = new();
-        thing.thingData = thingData;
-        return thing;
+    public enum State {
+        Editor,
+        Active
     }
 
-    public void Assemble(Node parent, ThingEditor editor) {
+    public State state;
+
+    private Dictionary<StringName, List<Part>> partTracker;
+
+    public void AddToTracker(Part part) {
+        if (!this.partTracker.TryAdd(part.UID, [part])) {
+            this.partTracker[part.UID].Add(part);
+        }
+    }
+
+    public int GetTrackedCount(Part part) {
+        this.partTracker.TryGetValue(part.UID, out List<Part> list);
+        if (list == null) { return 0; }
+        return list.Count;
+    }
+
+    public bool RemoveFromTracker(Part part) {
+        this.partTracker.TryGetValue(part.UID, out List<Part> list);
+        return list.Remove(part);
+    }
+
+    public static Thing Create(Resource thingData) {
+        return new() { thingData = thingData };
+    }
+
+    public void Assemble(Node parent = null) {
 
         static AlignmentPlane FindConnector(Node node) {
             if (node is AlignmentPlane plane && plane.GetMeta("MeshType").AsString() == "Connector") {
@@ -49,6 +72,8 @@ public partial class Thing : Node3D
                 partList.Add(pScene);
             }
         }
+
+        this.partTracker = [];
 
         // Build the Thing according to matching connectors and receivers
         Part[] partArray = [..partList];
@@ -80,17 +105,17 @@ public partial class Thing : Node3D
                         Part childPart = partArray[i];
                         Part parentPart = partArray[j];
                         if (parentPart.IsInsideTree()) {
-                            childPart.PreparePart(connector, receiver, parentPart, this, editor);
+                            childPart.PreparePart(connector, receiver, parentPart, this);
                         }
                         else {
-                            parentPart.PartPrepared += () => childPart.PreparePart(connector, receiver, parentPart, this, editor);
+                            parentPart.PartPrepared += () => childPart.PreparePart(connector, receiver, parentPart, this);
                         }
                         break;
                     }
                 }
             }
             else {
-                partArray[i].PreparePart(null, null, parent, this, editor);
+                partArray[i].PreparePart(null, null, parent ?? this, this);
             }
         }
     }

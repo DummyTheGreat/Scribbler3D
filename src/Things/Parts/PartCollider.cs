@@ -27,14 +27,16 @@ public partial class PartCollider : Area3D {
     public void SetBoundCollider(PartCollider newBound) { this.boundCollider = newBound; }
     // Only called by connecting collider
     public void ClearColliderRelation() {
-        this.boundCollider?.SetBoundCollider(null);
-        HandleSeparation(this.boundCollider);
-        SetBoundCollider(null);
+        if (this.boundCollider != null) {
+            this.boundCollider.SetBoundCollider(null);
+            this.RemoveChild(this.link);
+            HandleSeparation(this.boundCollider);
+            SetBoundCollider(null);
+        }
 
         this.ToggleLinkVisibility(false);
-
         this.EmitSignal(SignalName.PartDisconnect);
-        this.RemoveChild(link);
+
     }
     public void SetPlane(AlignmentPlane p) {
         this.plane = p;
