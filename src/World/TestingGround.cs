@@ -7,15 +7,14 @@ public partial class TestingGround : WorldSpace
     public override void CreateThingChild(Resource thingData) {
         base.CreateThingChild(thingData);
         Thing thing = Thing.Create(thingData);
-        this.AddChild(thing);
-        thing.Assemble();
+        thing.Assemble(this);
         // Animation stuff
-        Part[] newChildren = [.. this.GetChildren().OfType<Part>().Where(x => x.thing == thing)];
-        foreach (Part part in newChildren) {
-            if (part.animationPlayer == null) {
+        Thing[] newChildren = [.. this.GetChildren().OfType<Thing>().Where(x => x.importData.complexName == thing.importData.complexName)];
+        foreach (Thing childThing in newChildren) {
+            if (childThing.animationPlayer == null) {
                 AnimationPlayer placeholder = new();
-                part.AddChild(placeholder);
-                part.animationPlayer = placeholder;
+                childThing.AddChild(placeholder);
+                childThing.animationPlayer = placeholder;
             }
         }
     }

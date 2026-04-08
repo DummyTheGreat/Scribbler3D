@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="ThingSingletonData" format=3 uid="uid://fkvl4toe8lbv"]
+
+[ext_resource type="Script" uid="uid://c5nb5gppgp1rq" path="res://src/Things/Data/ThingSingletonData.gd" id="1_hl1yt"]
+[ext_resource type="Script" uid="uid://lcxf1gf0irkb" path="res://src/Things/Data/ThingBoneData.gd" id="1_ttkm6"]
+[ext_resource type="PackedScene" uid="uid://buaul3b4yith7" path="res://assets/Models/Human/Mirrors/Human_Arm_Mirror_Model.glb" id="2_hl1yt"]
+
+[sub_resource type="Resource" id="Resource_464tj"]
+script = ExtResource("1_ttkm6")
+
+[sub_resource type="Resource" id="Resource_cyn13"]
+script = ExtResource("1_ttkm6")
+boneIndex = 1
+xScale = 0.9999998
+yScale = 0.9999998
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_yy2tq"]
+script = ExtResource("1_ttkm6")
+boneIndex = 2
+yScale = 0.9999999
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_whnqh"]
+script = ExtResource("1_ttkm6")
+boneIndex = 3
+xScale = 0.99999994
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_tfknd"]
+script = ExtResource("1_ttkm6")
+boneIndex = 4
+yScale = 1.0000001
+
+[resource]
+script = ExtResource("1_hl1yt")
+singletonName = "Arm"
+boneData = Array[ExtResource("1_ttkm6")]([SubResource("Resource_464tj"), SubResource("Resource_cyn13"), SubResource("Resource_yy2tq"), SubResource("Resource_whnqh"), SubResource("Resource_tfknd")])
+scene = ExtResource("2_hl1yt")
+complexName = "Human"
+pathToReceiver = NodePath("Skeleton3D/ArmSocket_R/Receiver_Human_Arm_Right_V1_I1")
+fileName = "HumanArmRightV1I1"

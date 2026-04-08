@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="ThingSingletonData" format=3 uid="uid://pt8pw52dxqsx"]
+
+[ext_resource type="Script" uid="uid://lcxf1gf0irkb" path="res://src/Things/Data/ThingBoneData.gd" id="1_7i5n1"]
+[ext_resource type="Script" uid="uid://c5nb5gppgp1rq" path="res://src/Things/Data/ThingSingletonData.gd" id="2_fvm71"]
+[ext_resource type="PackedScene" uid="uid://dt0hn4gos8q7" path="res://assets/Models/Human/Mirrors/Human_Leg_Mirror_Model.glb" id="3_2kukf"]
+
+[sub_resource type="Resource" id="Resource_ibgy4"]
+script = ExtResource("1_7i5n1")
+xScale = 0.99999994
+yScale = 0.9999999
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_2p7gs"]
+script = ExtResource("1_7i5n1")
+boneIndex = 1
+yScale = 1.0000001
+
+[sub_resource type="Resource" id="Resource_wiyxv"]
+script = ExtResource("1_7i5n1")
+boneIndex = 2
+xScale = 0.9999999
+yScale = 1.0000004
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_gx8fi"]
+script = ExtResource("1_7i5n1")
+boneIndex = 3
+xScale = 0.9999999
+yScale = 1.0000002
+
+[resource]
+script = ExtResource("2_fvm71")
+singletonName = "Leg"
+boneData = Array[ExtResource("1_7i5n1")]([SubResource("Resource_ibgy4"), SubResource("Resource_2p7gs"), SubResource("Resource_wiyxv"), SubResource("Resource_gx8fi")])
+scene = ExtResource("3_2kukf")
+complexName = "Jim"
+pathToReceiver = NodePath("Skeleton3D/LegSocket_R/Receiver_Human_Leg_Right_V1_I1")
+fileName = "JimLegRightV1I1"

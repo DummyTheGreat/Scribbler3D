@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="ThingSingletonData" format=3 uid="uid://bof47g1sodu1t"]
+
+[ext_resource type="Script" uid="uid://lcxf1gf0irkb" path="res://src/Things/Data/ThingBoneData.gd" id="1_cyvgj"]
+[ext_resource type="Script" uid="uid://c5nb5gppgp1rq" path="res://src/Things/Data/ThingSingletonData.gd" id="1_q4yjr"]
+[ext_resource type="PackedScene" uid="uid://rkg806qocf4t" path="res://assets/Models/Human/Human_Arm_Model.glb" id="2_cyvgj"]
+
+[sub_resource type="Resource" id="Resource_fk13b"]
+script = ExtResource("1_cyvgj")
+
+[sub_resource type="Resource" id="Resource_ghq23"]
+script = ExtResource("1_cyvgj")
+boneIndex = 1
+xScale = 0.9999999
+yScale = 0.9999998
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_c3lb7"]
+script = ExtResource("1_cyvgj")
+boneIndex = 2
+yScale = 1.0000001
+
+[sub_resource type="Resource" id="Resource_ll85a"]
+script = ExtResource("1_cyvgj")
+boneIndex = 3
+xScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_3646b"]
+script = ExtResource("1_cyvgj")
+boneIndex = 4
+yScale = 1.0000001
+zScale = 1.0000001
+
+[resource]
+script = ExtResource("1_q4yjr")
+singletonName = "Arm"
+boneData = Array[ExtResource("1_cyvgj")]([SubResource("Resource_fk13b"), SubResource("Resource_ghq23"), SubResource("Resource_c3lb7"), SubResource("Resource_ll85a"), SubResource("Resource_3646b")])
+scene = ExtResource("2_cyvgj")
+complexName = "Human"
+pathToReceiver = NodePath("Skeleton3D/ArmSocket_L/Receiver_Human_Arm_Left_V1_I1")
+fileName = "HumanArmLeftV1I1"

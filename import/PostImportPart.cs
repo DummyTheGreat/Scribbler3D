@@ -195,8 +195,8 @@ public partial class PostImportPart : EditorScenePostImport
             }
         }
 
-        this.staticPartScript = Load<Script>("src/Things/Parts/StaticPart.cs");
-        this.deformingPartScript = Load<Script>("src/Things/Parts/DeformingPart.cs");
+        this.staticPartScript = Load<Script>("src/Things/Parts/StaticThing.cs");
+        this.deformingPartScript = Load<Script>("src/Things/Parts/DeformingThing.cs");
         this.alignmentPlaneScript = Load<Script>("src/Things/Parts/AlignmentPlane.cs");
 
         Node3D part = (Node3D)scene.GetChild(0);
@@ -249,7 +249,6 @@ public partial class PostImportPart : EditorScenePostImport
         AnimationSetup(scene, animationPlayer);
 
         Script dataGeneration = Load<Script>("res://import/GenerateThingData.gd");
-        Print(dataGeneration.Call("GenerateImport", scene));
         return scene;
     }
 }

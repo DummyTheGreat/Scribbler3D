@@ -13,9 +13,9 @@ public partial class ExportModelTransformData : Button
     }
 
     private List<ModelTransform> transforms;
-    private List<Part> parts;
+    private List<Thing> parts;
 
-    public void AddParts(List<Part> p) {
+    public void AddParts(List<Thing> p) {
         this.parts.AddRange(p);
     }
     private void OnClick() {

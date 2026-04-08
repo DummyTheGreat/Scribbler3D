@@ -17,7 +17,7 @@ public partial class QuadList : HBoxContainer {
     public void FlipQuad(string meshType, AlignmentPlane plane) {
 
         PartCollider respCollider = plane.GetCollider();
-        Part thisPart = respCollider.associatedPart;
+        Thing thisPart = respCollider.associatedPart;
 
         //respCollider.CollisionLayer = meshType == "Connector" ? (uint)1 : (uint)2;
         //respCollider.CollisionMask = meshType == "Connector" ? (uint)0 : (uint)1;
@@ -33,7 +33,7 @@ public partial class QuadList : HBoxContainer {
 
             PartCollider bound = respCollider.GetBoundCollider();
             if (bound != null) {
-                Part boundPart = bound.associatedPart;
+                Thing boundPart = bound.associatedPart;
                 boundPart.MoveSelected();
                 respCollider.CollisionLayer = (uint)2;
                 respCollider.CollisionMask = (uint)1;
@@ -48,7 +48,7 @@ public partial class QuadList : HBoxContainer {
 
         plane.FlipNormal();
 
-        if (thisPart is DeformingPart defPart) {
+        if (thisPart is DeformingThing defPart) {
 
             BoneAttachment3D socket = plane.GetParentOrNull<BoneAttachment3D>();
 
@@ -70,9 +70,9 @@ public partial class QuadList : HBoxContainer {
         Close();
     }
 
-    public void AddTopPartAnimationsToList(Part part) {
-        Part topPart = part;
-        while (topPart.parentPart != null) { topPart = topPart.parentPart; }
+    public void AddTopPartAnimationsToList(Thing part) {
+        Thing topPart = part;
+        while (topPart.parentThing != null) { topPart = topPart.parentThing; }
 
         foreach (StringName libStr in topPart.animationPlayer.GetAnimationLibraryList()) {
             AnimationLibrary lib = topPart.animationPlayer.GetAnimationLibrary(libStr);

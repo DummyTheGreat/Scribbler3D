@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="ThingSingletonData" format=3 uid="uid://db7ca123m48rb"]
+
+[ext_resource type="Script" uid="uid://lcxf1gf0irkb" path="res://src/Things/Data/ThingBoneData.gd" id="1_0mdhb"]
+[ext_resource type="Script" uid="uid://c5nb5gppgp1rq" path="res://src/Things/Data/ThingSingletonData.gd" id="1_xwfom"]
+[ext_resource type="Resource" uid="uid://lr4uawo6fjqy" path="res://src/Things/Data/Resources/Human/HumanPelvisV1I1.tres" id="2_0mdhb"]
+[ext_resource type="Resource" uid="uid://b56pxtyowchv5" path="res://src/Things/Data/Resources/Human/HumanHeadV1I1.tres" id="3_kkgxv"]
+[ext_resource type="Resource" uid="uid://bof47g1sodu1t" path="res://src/Things/Data/Resources/Human/HumanArmLeftV1I1.tres" id="4_relqm"]
+[ext_resource type="Resource" uid="uid://fkvl4toe8lbv" path="res://src/Things/Data/Resources/Human/HumanArmRightV1I1.tres" id="5_l742u"]
+[ext_resource type="PackedScene" uid="uid://bi1wsn1r0s402" path="res://assets/Models/Human/Human_Torso_Model.glb" id="6_xpoyf"]
+
+[sub_resource type="Resource" id="Resource_kkgxv"]
+script = ExtResource("1_0mdhb")
+
+[sub_resource type="Resource" id="Resource_relqm"]
+script = ExtResource("1_0mdhb")
+boneIndex = 1
+yScale = 0.99999994
+zScale = 1.0000359
+
+[sub_resource type="Resource" id="Resource_l742u"]
+script = ExtResource("1_0mdhb")
+boneIndex = 2
+yScale = 0.9999999
+zScale = 1.0000358
+
+[sub_resource type="Resource" id="Resource_xpoyf"]
+script = ExtResource("1_0mdhb")
+boneIndex = 3
+
+[sub_resource type="Resource" id="Resource_4iiql"]
+script = ExtResource("1_0mdhb")
+boneIndex = 4
+yScale = 1.0000001
+
+[sub_resource type="Resource" id="Resource_vdv7k"]
+script = ExtResource("1_0mdhb")
+boneIndex = 5
+yScale = 1.0000001
+
+[sub_resource type="Resource" id="Resource_2fsob"]
+script = ExtResource("1_0mdhb")
+boneIndex = 6
+yScale = 1.0000001
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_g11so"]
+script = ExtResource("1_0mdhb")
+boneIndex = 7
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_bqtnf"]
+script = ExtResource("1_0mdhb")
+boneIndex = 8
+yScale = 1.0000001
+zScale = 0.9999999
+
+[sub_resource type="Resource" id="Resource_sc4hw"]
+script = ExtResource("1_0mdhb")
+boneIndex = 9
+xScale = 0.9999999
+yScale = 0.99999994
+zScale = 0.9999999
+
+[resource]
+script = ExtResource("1_xwfom")
+singletonName = "Torso"
+boneData = Array[ExtResource("1_0mdhb")]([SubResource("Resource_kkgxv"), SubResource("Resource_relqm"), SubResource("Resource_l742u"), SubResource("Resource_xpoyf"), SubResource("Resource_4iiql"), SubResource("Resource_vdv7k"), SubResource("Resource_2fsob"), SubResource("Resource_g11so"), SubResource("Resource_bqtnf"), SubResource("Resource_sc4hw")])
+scene = ExtResource("6_xpoyf")
+complexName = "Human"
+connectedThings = Array[ExtResource("1_xwfom")]([ExtResource("2_0mdhb"), ExtResource("3_kkgxv"), ExtResource("4_relqm"), ExtResource("5_l742u")])
+fileName = "HumanTorsoV1I1"

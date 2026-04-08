@@ -20,7 +20,7 @@ public partial class FreeCam : Node3D
     private bool allowRotate;
     private float zoomAxis;
 
-    public void ToggleInput(Part p, bool state) {
+    public void ToggleInput(Thing p, bool state) {
         SetProcessInput(!state);
         this.allowRotate = false;
         this.panning = false;

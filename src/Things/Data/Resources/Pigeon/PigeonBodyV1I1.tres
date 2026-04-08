@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="ThingSingletonData" format=3 uid="uid://d12heap0ahw2w"]
+
+[ext_resource type="Script" uid="uid://c5nb5gppgp1rq" path="res://src/Things/Data/ThingSingletonData.gd" id="1_5huem"]
+[ext_resource type="PackedScene" uid="uid://bw73fdjwjis2w" path="res://assets/Models/Pigeon/Pigeon_Body_Model.glb" id="2_ax08t"]
+[ext_resource type="PackedScene" uid="uid://c4c5cuox6htwb" path="res://assets/Models/Pigeon/Pigeon_Head_Model.glb" id="2_kjs7e"]
+[ext_resource type="Resource" uid="uid://bw34eouwmh7g0" path="res://src/Things/Data/Resources/Pigeon/PigeonWingRightV1I1.tres" id="3_v4q36"]
+[ext_resource type="PackedScene" uid="uid://da8pm83827ixx" path="res://assets/Models/Pigeon/Pigeon_Wing_Model.glb" id="4_dvodn"]
+[ext_resource type="PackedScene" uid="uid://cw24b7dgamtel" path="res://assets/Models/Pigeon/Pigeon_Tail_Model.glb" id="5_6hbln"]
+[ext_resource type="PackedScene" uid="uid://nttujmemwaof" path="res://assets/Models/Pigeon/Pigeon_Leg_Model.glb" id="6_qse1u"]
+[ext_resource type="Resource" uid="uid://owtb6ctot62i" path="res://src/Things/Data/Resources/Pigeon/PigeonLegRightV1I1.tres" id="7_6gvop"]
+
+[sub_resource type="Resource" id="Resource_y46hc"]
+script = ExtResource("1_5huem")
+singletonName = "Head"
+scene = ExtResource("2_kjs7e")
+complexName = "Pigeon"
+pathToReceiver = NodePath("Skeleton3D/NeckSocket_Rec/Receiver_Pigeon_Head_V1_I1")
+fileName = "PigeonHeadV1I1"
+
+[sub_resource type="Resource" id="Resource_s0ifw"]
+script = ExtResource("1_5huem")
+singletonName = "Wing"
+scene = ExtResource("4_dvodn")
+complexName = "Pigeon"
+pathToReceiver = NodePath("Skeleton3D/WingSocket_Rec_L/Receiver_Pigeon_Wing_Left_V1_I1")
+fileName = "PigeonWingLeftV1I1"
+
+[sub_resource type="Resource" id="Resource_nte32"]
+script = ExtResource("1_5huem")
+singletonName = "Tail"
+scene = ExtResource("5_6hbln")
+complexName = "Pigeon"
+pathToReceiver = NodePath("Skeleton3D/LowerSpineSocket_Rec/Receiver_Pigeon_Tail_V1_I1")
+fileName = "PigeonTailV1I1"
+
+[sub_resource type="Resource" id="Resource_ttkso"]
+script = ExtResource("1_5huem")
+singletonName = "Leg"
+scene = ExtResource("6_qse1u")
+complexName = "Pigeon"
+pathToReceiver = NodePath("Skeleton3D/LegSocket_Rec_L/Receiver_Pigeon_Leg_Left_V1_I1")
+fileName = "PigeonLegLeftV1I1"
+
+[resource]
+script = ExtResource("1_5huem")
+singletonName = "Body"
+scene = ExtResource("2_ax08t")
+complexName = "Pigeon"
+connectedThings = Array[ExtResource("1_5huem")]([SubResource("Resource_y46hc"), ExtResource("3_v4q36"), SubResource("Resource_s0ifw"), SubResource("Resource_nte32"), SubResource("Resource_ttkso"), ExtResource("7_6gvop")])
+fileName = "PigeonBodyV1I1"

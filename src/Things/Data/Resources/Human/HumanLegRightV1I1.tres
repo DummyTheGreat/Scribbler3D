@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="ThingSingletonData" format=3 uid="uid://c5q48jctcrx30"]
+
+[ext_resource type="Script" uid="uid://c5nb5gppgp1rq" path="res://src/Things/Data/ThingSingletonData.gd" id="1_ergwq"]
+[ext_resource type="Script" uid="uid://lcxf1gf0irkb" path="res://src/Things/Data/ThingBoneData.gd" id="1_jymoo"]
+[ext_resource type="PackedScene" uid="uid://dt0hn4gos8q7" path="res://assets/Models/Human/Mirrors/Human_Leg_Mirror_Model.glb" id="2_ergwq"]
+
+[sub_resource type="Resource" id="Resource_idfg6"]
+script = ExtResource("1_jymoo")
+xScale = 0.99999994
+yScale = 0.9999999
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_fx1e8"]
+script = ExtResource("1_jymoo")
+boneIndex = 1
+yScale = 1.0000001
+
+[sub_resource type="Resource" id="Resource_lb103"]
+script = ExtResource("1_jymoo")
+boneIndex = 2
+xScale = 0.9999999
+yScale = 1.0000004
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_y1okw"]
+script = ExtResource("1_jymoo")
+boneIndex = 3
+xScale = 0.9999999
+yScale = 1.0000002
+
+[resource]
+script = ExtResource("1_ergwq")
+singletonName = "Leg"
+boneData = Array[ExtResource("1_jymoo")]([SubResource("Resource_idfg6"), SubResource("Resource_fx1e8"), SubResource("Resource_lb103"), SubResource("Resource_y1okw")])
+scene = ExtResource("2_ergwq")
+complexName = "Human"
+pathToReceiver = NodePath("Skeleton3D/LegSocket_R/Receiver_Human_Leg_Right_V1_I1")
+fileName = "HumanLegRightV1I1"

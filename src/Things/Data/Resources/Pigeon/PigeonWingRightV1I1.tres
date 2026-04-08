@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ThingSingletonData" format=3 uid="uid://bw34eouwmh7g0"]
+
+[ext_resource type="Script" uid="uid://c5nb5gppgp1rq" path="res://src/Things/Data/ThingSingletonData.gd" id="1_nf7ea"]
+[ext_resource type="PackedScene" uid="uid://w0xrk4gtxm8g" path="res://assets/Models/Pigeon/Mirrors/Pigeon_Wing_Mirror_Model.glb" id="2_krdg8"]
+
+[resource]
+script = ExtResource("1_nf7ea")
+singletonName = "Wing"
+scene = ExtResource("2_krdg8")
+complexName = "Pigeon"
+pathToReceiver = NodePath("Skeleton3D/WingSocket_Rec_R/Receiver_Pigeon_Wing_Right_V1_I1")
+fileName = "PigeonWingRightV1I1"

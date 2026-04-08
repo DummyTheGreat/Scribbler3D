@@ -23,8 +23,6 @@ public partial class ThingEditor : Control {
     private SubViewportContainer worldContainer;
     private Theme theme;
 
-    public Node3D GetRootSpace() { return this.worldRoot.GetChild<Node3D>(0); }
-
     public void AddPartSlidersToToolList(Skeleton3D skeleton) {
 
         int[] socketIndices = skeleton.GetChildren().OfType<BoneAttachment3D>().Select(x => x.BoneIdx).ToArray();
@@ -40,7 +38,7 @@ public partial class ThingEditor : Control {
                     child.Toggled += (toggle) => slider.SwitchAxis(toggle, child);
                 }
                 toolList.AddChild(slider);
-                Part parent = skeleton.GetParentOrNull<Part>();
+                Thing parent = skeleton.GetParentOrNull<Thing>();
                 if (parent != null) {
                     parent.PartAnimationStatus += slider.ToggleEdit;
                 }
@@ -78,23 +76,25 @@ public partial class ThingEditor : Control {
     **/
     private void ThingSelected(long index, bool selected) {
         this.things.SetItemSelectable((int)index, false);
-        Print(selected);
-        Resource thingData = Load<Resource>("res://src/Things/Data/Resources/" + this.things.GetItemText((int)index) + ".tres");
-        this.worldRoot.GetWorldSpace<ThingEditorSpace>().CreateThingChild(thingData);
+        string dataPath = "res://src/Things/Data/Resources/" + this.things.GetItemText((int)index);
+        DirAccess dir = DirAccess.Open(dataPath);
+        foreach (string fileName in dir.GetFiles()) {
+            Resource thingData = Load<Resource>(dataPath + "/" + fileName);
+            if (thingData.Get("pathToReceiver").AsNodePath().IsEmpty) {
+                this.worldRoot.GetWorldSpace<ThingEditorSpace>().CreateThingChild(thingData);
+                break;
+            }
+        }
     }
 
     // Signal when "Duplicate Selected" is pressed
-    private void DuplicateSelectedPart(Part paramPart = null) {
+    private void DuplicateSelectedPart(Thing paramPart = null) {
 
-        Part Duplication(Part originalPart, Node parent, NodePath connectorPath, NodePath receiverPath) {
-            Part dupe = originalPart.duplicateScene.Instantiate<Part>();
-            dupe.SetMeta("Instance", dupe.GetMeta("Instance").AsInt32() + 1);
-            dupe.PreparePart(
-                connectorPath == "" ? null : dupe.GetNode<AlignmentPlane>(connectorPath), 
-                receiverPath == "" ? null : parent.GetNode<AlignmentPlane>(receiverPath), 
-                parent, 
-                originalPart.thing);
-            dupe.duplicateScene = originalPart.duplicateScene;
+        Thing Duplication(Thing originalPart, Node parent, NodePath connectorPath, NodePath receiverPath) {
+            Thing dupe = Thing.Create(originalPart.importData);
+            dupe.PrepareThing(
+                connectorPath == "" ? null : dupe.GetNode<AlignmentPlane>(connectorPath),
+                parent);
 
             // Only top part will have/need animation player
             if (parent == this.worldRoot) {
@@ -107,7 +107,7 @@ public partial class ThingEditor : Control {
                 dupe.GlobalTransform = originalPart.GlobalTransform;
             }
 
-            foreach (Part childPart in originalPart.connectedParts) {
+            foreach (Thing childPart in originalPart.connectedThings) {
                 AlignmentPlane childConnector = childPart.activeCollider.plane;
                 AlignmentPlane parentReceiver = childPart.activeCollider.GetBoundCollider().plane;
                 Duplication(childPart, dupe, childPart.GetPathTo(childConnector), originalPart.GetPathTo(parentReceiver));
@@ -119,7 +119,6 @@ public partial class ThingEditor : Control {
         static string IterateName(string libName, GodotObject lib, bool updateMeta, int iter = 1) {
             string[] libNameItems = libName.Split('_');
             if (libNameItems.Length < 3) { Print("Something is wrong with animations"); return ""; }
-            Print(lib.GetMeta("Instance").AsInt32());
             libNameItems[^1] = "I" + (lib.GetMeta("Instance").AsInt32() + iter).ToString();
             if (updateMeta) {
                 lib.SetMeta("Instance", lib.GetMeta("Instance").AsInt32() + iter);
@@ -127,10 +126,10 @@ public partial class ThingEditor : Control {
             return String.Join("_", libNameItems);
         }
 
-        Part p = paramPart ?? this.worldRoot.GetSelected<Part>();
+        Thing p = paramPart ?? this.worldRoot.GetSelected<Thing>();
         // For now only allow duplication with singleton parts
-        if (p != null && p.parentPart == null) {
-            Part dupe = Duplication(p, this.worldRoot.GetChild(0), "", "");
+        if (p != null && p.parentThing == null) {
+            Thing dupe = Duplication(p, this.worldRoot.GetChild(0), "", "");
 
             AnimationPlayer dupePlayer = new();
             foreach (StringName libName in p.animationPlayer.GetAnimationLibraryList()) {
@@ -150,13 +149,13 @@ public partial class ThingEditor : Control {
                     // new Animation
                     Animation dupeAnim = new();
 
-                    for (int trackNum = 0; trackNum < anim.GetTrackCount(); trackNum++) {
+                    for (int trackNum = 0; trackNum<anim.GetTrackCount(); trackNum++) {
                         anim.CopyTrack(trackNum, dupeAnim);
                         NodePath trackPath = anim.TrackGetPath(trackNum);
                         if (dupe.GetNodeOrNull(trackPath) == null) {
                             string[] pathSteps = trackPath.GetConcatenatedNames().Split('/');
                             string frontier = pathSteps[0];
-                            for (int i = 0; i < pathSteps.Length; i++) {
+                            for (int i = 0; i<pathSteps.Length; i++) {
                                 Node frontierNode = p.GetNodeOrNull(frontier);
                                 if (frontierNode.HasMeta("Instance")) {
                                     pathSteps[i] = IterateName(pathSteps[i], frontierNode, false);
@@ -182,7 +181,6 @@ public partial class ThingEditor : Control {
 
                 dupeLib.SetMeta("Instance", lib.GetMeta("Instance").AsInt32() + 1);
                 dupePlayer.AddAnimationLibrary(newLibName, dupeLib);
-
             }
 
             dupe.animationPlayer = dupePlayer;
@@ -193,30 +191,28 @@ public partial class ThingEditor : Control {
     // Signal when "Delete Selected" is pressed
     private void DeleteSelectedPart() {
         
-        static void Delete(Part part) {
-            Part[] childPartList = part.connectedParts.ToArray();
-            foreach (Part child in childPartList) {
-                Delete(child);
+        static void Delete(Thing part, Node parent) {
+            Thing[] childPartList = part.connectedThings.ToArray();
+            foreach (Thing child in childPartList) {
+                Delete(child, part);
             }
             part.Unselected();
-            if (part.parentPart != null) {
-                Part topPart = part;
-                while (topPart.activeCollider != null) {
-                    topPart = topPart.activeCollider.GetBoundCollider().associatedPart;
-                }
-                topPart.DetachPart(part);
+            if (part.parentThing != null) {
+                part.GetHierarch(Thing.TraversalType.Collider).DetachPart(part);
                 part.activeCollider.ClearColliderRelation();
             }
+            if (parent is Thing tParent) {
+                tParent.RemoveFromTracker(part);
+                tParent.connectedThings.Remove(part);
+            }
             part.GetParent().RemoveChild(part);
-            part.thing.RemoveFromTracker(part);
             part.QueueFree();
         }
 
-        Part p = this.worldRoot.GetSelected<Part>();
+        Thing p = this.worldRoot.GetSelected<Thing>();
         if (p != null) {
-
             this.worldRoot.ClearSelected();
-            Delete(p);
+            Delete(p, this.worldRoot.GetChild(0));
         }
     }
 
@@ -232,17 +228,15 @@ public partial class ThingEditor : Control {
     // Signal when "Create New Thing" is pressed
     private void CreateNewThing(string name) {
 
-        Part p = this.worldRoot.GetSelected<Part>();
+        Thing p = this.worldRoot.GetSelected<Thing>();
         if (p != null) {
             Script dataGeneration = Load<Script>("res://import/GenerateThingData.gd");
-            Part topPart = p;
-            while (topPart.parentPart != null) { topPart = topPart.parentPart; }
-            dataGeneration.Call("GenerateRuntime", topPart, name);
+            dataGeneration.Call("GenerateRuntime", p.GetHierarch(Thing.TraversalType.Parent), name);
         }
     }
 
     private void ToggleQuadList() {
-        Part p = this.worldRoot.GetSelected<Part>();
+        Thing p = this.worldRoot.GetSelected<Thing>();
         if (p != null) {
 
             if (p.bindingQuads.Count == 1 && p.bindingQuads[0].GetMeta("MeshType").AsString() == "Connector") {
@@ -275,17 +269,17 @@ public partial class ThingEditor : Control {
     }
 
     private void RotatePart(float degrees) {
-        Part p = this.worldRoot.GetSelected<Part>();
+        Thing p = this.worldRoot.GetSelected<Thing>();
         if (p.activeCollider == null) { return; }
         AlignmentPlane connectingPlane = p.activeCollider.plane;
         AlignmentPlane receivingPlane = p.activeCollider.GetBoundCollider().plane;
         connectingPlane.ShiftFrontToNext(degrees);
-        Transform3D newTransform = Part.CalculateJoinTransform(connectingPlane, receivingPlane, p.GlobalTransform);
+        Transform3D newTransform = ThingTools.CalculateJoinTransform(connectingPlane, receivingPlane, p.GlobalTransform);
         p.GlobalTransform = newTransform;
     }
 
     private void ToggleAnimationList() {
-        Part p = this.worldRoot.GetSelected<Part>();
+        Thing p = this.worldRoot.GetSelected<Thing>();
         if (p == null) { return; }
 
         this.animationList = Load<PackedScene>("res://src/UI/QuadList.tscn").Instantiate<QuadList>();
@@ -299,18 +293,18 @@ public partial class ThingEditor : Control {
     }
 
     private void MirrorPart() {
-        Part p = this.worldRoot.GetSelected<Part>();
+        Thing p = this.worldRoot.GetSelected<Thing>();
         if (p != null && (p.HasMeta("Mirror") || p.HasMeta("IsMirror"))) {
 
             PackedScene mirrorPartScene = p.GetMeta("Mirror").As<PackedScene>();
-            Part mirrorPart = mirrorPartScene.Instantiate<Part>();
-            mirrorPart.duplicateScene = mirrorPartScene;
+            Thing mirrorPart = mirrorPartScene.Instantiate<Thing>();
+            mirrorPart.importData.scene = mirrorPartScene;
 
-            if (mirrorPart.thing.GetTrackedCount(mirrorPart) > 0) {
+            if (mirrorPart.GetTrackedCount(mirrorPart) > 0) {
                 DuplicateSelectedPart(mirrorPart);
             }
             else {
-                mirrorPart.PreparePart(null, null, this.worldRoot, p.thing);
+                mirrorPart.PrepareThing(null, this.worldRoot);
             }
         }
     }
@@ -330,7 +324,7 @@ public partial class ThingEditor : Control {
         this.things = uiLayer.GetChild<ItemList>(0);
         this.things.MultiSelected += ThingSelected;
         string path = "res://src/Things/Data/Resources/";
-        string[] dirs = DirAccess.Open(path).GetFiles();
+        string[] dirs = DirAccess.Open(path).GetDirectories();
         foreach (string dir in dirs) {
             this.things.AddItem(dir.Split('.').First());
         }

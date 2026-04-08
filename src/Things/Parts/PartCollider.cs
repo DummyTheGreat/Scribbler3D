@@ -6,14 +6,8 @@ using System.Collections.Generic;
 
 public partial class PartCollider : Area3D {
 
-    [Signal]
-    public delegate void PartConnectEventHandler(PartCollider newCollider);
-
-    [Signal]
-    public delegate void PartDisconnectEventHandler();
-
     public AlignmentPlane plane;
-    public Part associatedPart;
+    public Thing associatedPart;
 
     private PartCollider boundCollider;
     private List<PartCollider> intersectingColliders;
@@ -22,9 +16,8 @@ public partial class PartCollider : Area3D {
     private bool initPhase;
     private string colliderType;
 
-
     public PartCollider GetBoundCollider() { return this.boundCollider; }
-    public void SetBoundCollider(PartCollider newBound) { this.boundCollider = newBound; }
+    private void SetBoundCollider(PartCollider newBound) { this.boundCollider = newBound; }
     // Only called by connecting collider
     public void ClearColliderRelation() {
         if (this.boundCollider != null) {
@@ -35,7 +28,7 @@ public partial class PartCollider : Area3D {
         }
 
         this.ToggleLinkVisibility(false);
-        this.EmitSignal(SignalName.PartDisconnect);
+        this.associatedPart.activeCollider = null;
 
     }
     public void SetPlane(AlignmentPlane p) {
@@ -69,14 +62,6 @@ public partial class PartCollider : Area3D {
             this.intersectingColliders.Add(collider);
             Print("Init Overlap", collider);
         }
-
-        //if (this.intersectingColliders.Count > 0 && externalArea is PartCollider col) {
-        //    this.AddChild(this.link);
-        //    col.SetBoundCollider(this);
-        //    this.SetBoundCollider(col);
-        //    this.EmitSignal(SignalName.PartConnect, this, true);
-        //}
-
     }
 
     private void HandleOverlap(Area3D externalArea) {
@@ -111,7 +96,7 @@ public partial class PartCollider : Area3D {
         this.intersectingColliders = [];
         Node root = this;
         while (root.GetParent() != null) {
-            if (root.GetParent() is Part pp) {
+            if (root.GetParent() is Thing pp) {
                 this.associatedPart = pp;
                 break;
             }
@@ -123,8 +108,6 @@ public partial class PartCollider : Area3D {
             PushError("Collider does not have associated part");
         }
 
-        //this.CollisionLayer = (uint)(Math.Pow(2, this.associatedPart.depth));
-        //this.CollisionMask = (uint)((this.associatedPart.depth > 0 && this.colliderType != "Receiver") ? Math.Pow(2, this.associatedPart.depth - 1) : 0);
         this.CollisionLayer = (uint)(this.colliderType == "Receiver" ? 1 : 2);
         this.CollisionMask = (uint)(this.colliderType == "Receiver" ? 0 : 1);
 
@@ -165,7 +148,6 @@ public partial class PartCollider : Area3D {
             ClearColliderRelation();
         }
         else if (closestCollider != this.boundCollider) {
-            Print(this.associatedPart.Name);
             // BoundArea null -> collider
             if (this.boundCollider == null) {
                 this.ToggleLinkVisibility(true);
@@ -176,7 +158,7 @@ public partial class PartCollider : Area3D {
             // BoundArea collider -> collider
             closestCollider.SetBoundCollider(this);
             this.SetBoundCollider(closestCollider);
-            this.EmitSignal(SignalName.PartConnect, this);
+            this.associatedPart.activeCollider = this;
         }
 
         if (this.boundCollider != null) {

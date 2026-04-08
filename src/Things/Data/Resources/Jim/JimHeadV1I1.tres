@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ThingSingletonData" format=3]
+
+[ext_resource type="Script" path="res://src/Things/Data/ThingBoneData.gd" id="1_fwr8k"]
+[ext_resource type="Script" path="res://src/Things/Data/ThingSingletonData.gd" id="2_ljiw3"]
+[ext_resource type="PackedScene" path="res://assets/Models/Pigeon/Pigeon_Head_Model.glb" id="3_p6p8s"]
+
+[sub_resource type="Resource" id="Resource_7dpd4"]
+script = ExtResource("1_fwr8k")
+
+[sub_resource type="Resource" id="Resource_5hrr4"]
+script = ExtResource("1_fwr8k")
+boneIndex = 1
+xScale = 0.99999994
+yScale = 0.99999994
+
+[resource]
+script = ExtResource("2_ljiw3")
+singletonName = "Head"
+boneData = Array[ExtResource("1_fwr8k")]([SubResource("Resource_7dpd4"), SubResource("Resource_5hrr4")])
+scene = ExtResource("3_p6p8s")
+complexName = "Jim"
+pathToReceiver = NodePath("Skeleton3D/NeckSocket/Receiver_Human_Head_V1_I1")
+fileName = "JimHeadV1I1"

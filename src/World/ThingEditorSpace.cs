@@ -7,12 +7,11 @@ using static Godot.GD;
 public partial class ThingEditorSpace : WorldSpace
 {
     [Signal]
-    public delegate void PartIsMovingEventHandler(Part part, bool state);
+    public delegate void PartIsMovingEventHandler(Thing part, bool state);
 
     [Signal]
     public delegate void PartSelectedEventHandler(Node3D selected);
 
-    private Part selectedPart;
     private float collisionRayLength = 1000f;
     private Plane dragPlane;
     private Vector3 dragOffset;
@@ -27,8 +26,8 @@ public partial class ThingEditorSpace : WorldSpace
         Thing thing = Thing.Create(thingData);
         thing.Assemble(this);
         // Animation stuff
-        Part[] newChildren = [.. this.GetChildren().OfType<Part>().Where(x => x.thing == thing)];
-        foreach (Part part in newChildren) {
+        Thing[] newChildren = [.. this.GetChildren().OfType<Thing>().Where(x => x.importData.complexName == thing.importData.complexName)];
+        foreach (Thing part in newChildren) {
             if (part.animationPlayer == null) {
                 AnimationPlayer placeholder = new();
                 part.AddChild(placeholder);
@@ -53,30 +52,29 @@ public partial class ThingEditorSpace : WorldSpace
             Godot.Collections.Dictionary collisions = this.GetParent<WorldRoot>().GetWorld3D().DirectSpaceState.IntersectRay(query);
             if (collisions.Count == 0) {
                 if (mouse.ButtonIndex == MouseButton.Left) {
-                    this.selectedPart?.Unselected();
-                    this.selectedPart = null;
+                    this.selected?.Unselected();
+                    this.selected = null;
                     EmitSignalPartSelected(null);
                 }
                 return;
             }
-
             MeshInstance3D hit = (collisions["collider"].AsGodotObject() as Node).GetParentOrNull<MeshInstance3D>();
-            Part clickedPart = hit?.GetParentOrNull<Part>();
+            Thing clickedPart = hit?.GetParentOrNull<Thing>();
             if (clickedPart == null) return;
-            
-            if (clickedPart != this.selectedPart) { // Selected
-                this.selectedPart?.Unselected();
+
+            if (clickedPart != this.selected) { // Selected
+                this.selected?.Unselected();
                 clickedPart.Selected();
-                this.selectedPart = clickedPart;
+                this.selected = clickedPart;
                 EmitSignalPartSelected(clickedPart);
             }
             else { // Moving selected
                 Vector3 clickPosition = (Vector3)collisions["position"];
                 this.dragPlane = new Plane(camera.GlobalTransform.Basis.Z, clickPosition);
-                this.dragOffset = this.selectedPart.GlobalPosition - clickPosition;
+                this.dragOffset = this.selected.GlobalPosition - clickPosition;
 
-                this.selectedPart.MoveSelected();
-                EmitSignalPartIsMoving(this.selectedPart, true);
+                this.selected.MoveSelected();
+                EmitSignalPartIsMoving(this.selected, true);
                 this.heldButton = mouse.ButtonIndex;
                 Input.MouseMode = mouse.ButtonIndex == MouseButton.Right ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.ConfinedHidden;
                 this.moving = true;
@@ -84,8 +82,8 @@ public partial class ThingEditorSpace : WorldSpace
         }
         else if (@event is InputEventMouseButton { Pressed: false } endmouse && (endmouse.ButtonIndex == MouseButton.Left || endmouse.ButtonIndex == MouseButton.Right)) {
             if (this.moving) {
-                this.selectedPart?.StopSelected();
-                EmitSignalPartIsMoving(this.selectedPart, false);
+                this.selected?.StopSelected();
+                EmitSignalPartIsMoving(this.selected, false);
                 Input.MouseMode = Input.MouseModeEnum.Visible;
                 this.moving = false;
             }
@@ -101,7 +99,7 @@ public partial class ThingEditorSpace : WorldSpace
                 Vector3? point = dragPlane.IntersectsRay(origin, direction);
                 if (point == null) return;
 
-                this.selectedPart.GlobalPosition = point.Value + dragOffset;
+                this.selected.GlobalPosition = point.Value + dragOffset;
             }
             else {
                 float speed = 0.02f;
@@ -109,7 +107,7 @@ public partial class ThingEditorSpace : WorldSpace
                 this.yaw += -motion.Relative.X * speed;
                 this.pitch -= motion.Relative.Y * speed;
 
-                this.selectedPart.GlobalRotation = new Vector3(selectedPart.GlobalRotation.X, yaw, pitch);
+                this.selected.GlobalRotation = new Vector3(selected.GlobalRotation.X, yaw, pitch);
             }
         }
     }

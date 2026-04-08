@@ -154,23 +154,23 @@ public partial class BoneScaleSlider : HBoxContainer
 
     private void CorrectPartUnifications(bool valueChanged) {
 
-        static void TransformPart(Part part) {
+        static void TransformPart(Thing part) {
             AlignmentPlane connector = part.activeCollider.plane;
             AlignmentPlane receiver = part.activeCollider.GetBoundCollider().plane;
-            Transform3D t = Part.CalculateJoinTransform(connector, receiver, part.GlobalTransform);
+            Transform3D t = ThingTools.CalculateJoinTransform(connector, receiver, part.GlobalTransform);
             part.GlobalTransform = t;
         }
 
         if (valueChanged) {
             BoneAttachment3D[] children = this.skeleton.GetChildren().OfType<BoneAttachment3D>().ToArray();
             foreach (BoneAttachment3D attachment in children) {
-                Part[] childParts = attachment.GetChildren().OfType<Part>().ToArray();
+                Thing[] childParts = attachment.GetChildren().OfType<Thing>().ToArray();
                 AlignmentPlane plane = attachment.GetChildren().OfType<AlignmentPlane>().FirstOrDefault();
-                foreach (Part part in childParts) { // A Receiver
+                foreach (Thing part in childParts) { // A Receiver
                     TransformPart(part);
                 }
                 if (childParts.Length == 0 && plane != null && plane.GetMeta("MeshType").AsString() == "Connector") { // A Connector
-                    TransformPart(this.skeleton.GetParent<Part>());
+                    TransformPart(this.skeleton.GetParent<Thing>());
                 }
             }
         }

@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="ThingSingletonData" format=3]
+
+[ext_resource type="Script" path="res://src/Things/Data/ThingBoneData.gd" id="1_7m81v"]
+[ext_resource type="Script" path="res://src/Things/Data/ThingSingletonData.gd" id="2_00g03"]
+[ext_resource type="PackedScene" path="res://assets/Models/Human/Human_Leg_Model.glb" id="3_a87lo"]
+
+[sub_resource type="Resource" id="Resource_elmy0"]
+script = ExtResource("1_7m81v")
+
+[sub_resource type="Resource" id="Resource_l8i2t"]
+script = ExtResource("1_7m81v")
+boneIndex = 1
+yScale = 0.99999994
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_ng3v0"]
+script = ExtResource("1_7m81v")
+boneIndex = 2
+xScale = 0.99999994
+yScale = 1.0000002
+
+[sub_resource type="Resource" id="Resource_iofc7"]
+script = ExtResource("1_7m81v")
+boneIndex = 3
+xScale = 0.9999999
+
+[resource]
+script = ExtResource("2_00g03")
+singletonName = "Leg"
+boneData = Array[ExtResource("1_7m81v")]([SubResource("Resource_elmy0"), SubResource("Resource_l8i2t"), SubResource("Resource_ng3v0"), SubResource("Resource_iofc7")])
+scene = ExtResource("3_a87lo")
+complexName = "Jim"
+pathToReceiver = NodePath("Skeleton3D/LegSocket_L/Receiver_Human_Leg_Left_V1_I1")
+fileName = "JimLegLeftV1I1"

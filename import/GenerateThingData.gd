@@ -7,118 +7,116 @@ static func _scriptCheck(node : Node) -> String:
 	if script is CSharpScript:
 		return className
 	return ""
+	
+static func _checkFolder(folderName : String) -> bool:
+	var dir = DirAccess.open("res://src/Things/Data/Resources")
+	if not dir.dir_exists(folderName):
+		dir.make_dir(folderName)
+		return false
+	return true
+	
 
-static func addPartRequirement(mesh : Node, parts : Array[PartRequirement], thingName : String, partName: String, path : NodePath) -> void:
-	var fileName = thingName + "_" + partName + "_Model.glb"
-	var thisScene : PackedScene = load("res://assets/Models/" + thingName + "/" + fileName)
+static func createThingData(mesh : Node, nameChange : String = "") -> ThingSingletonData:
+	if mesh == null:
+		return null
+	
+	# Check if data already exists. Update if already existing. Create if not
+	var thingName : String = mesh.get_meta("ThingName") if nameChange.is_empty() else nameChange
+	var partName : String = mesh.get_meta("PartName")
+	var orienation : String = mesh.get_meta("Orientation") if mesh.has_meta("Orientation") else ""
+	var vari : String = "V" + str(mesh.get_meta("PartVariant")) if mesh.has_meta("PartVariant") else ""
+	var instance : int = mesh.get_meta("Instance")
+	
+	var resFileName : String = thingName + partName + orienation + vari + "I" + str(instance)
+	# data for the current part being imported
+	var sceneFileName : String = mesh.get_meta("ThingName") + "_" + partName + "_Model.glb"
+	if mesh.get_meta("MeshType") == "Part" and mesh.get_meta("IsMirror"):
+		sceneFileName = "Mirrors/" + mesh.get_meta("ThingName") + "_" + partName + "_Mirror_Model.glb"
+	 
+	var thisScene : PackedScene = load("res://assets/Models/" + mesh.get_meta("ThingName") + "/" + sceneFileName)
+	
+	var data : ThingSingletonData
 	var thisSkeleton : Skeleton3D
 	if mesh.get_meta("MeshType") == "Part":
 		var idx : int = mesh.get_children().find_custom(func(x : Node): return x is Skeleton3D)
 		thisSkeleton = mesh.get_child(idx) if idx != -1 else null
 	else:
 		thisSkeleton = thisScene.instantiate().get_children().filter(func(x : Node): return x is Skeleton3D).front()
-	# Check if requirement for the part already exists
-	var i = parts.find_custom(func(x : PartRequirement): return x.partScene == thisScene)
-	if i != -1:
-		var existingPaths : Array = parts[i].partData.map(func(x : PartData): return x.receiver)
-		# Prevent duplicate from reimport of same part
-		if existingPaths.any(func(x : NodePath): 
-			return x.get_concatenated_names() == path.get_concatenated_names()) or existingPaths.is_empty():
-			return
-			
-		if not path.is_empty():
-			parts[i].partData.append(PartData.create(partName, path, thisSkeleton))
+	
+	var filePath : String = "res://src/Things/Data/Resources/" + thingName + "/" + resFileName + ".tres"
+	if FileAccess.file_exists(filePath):
+		data = load(filePath)
 	else:
-		var pReq : PartRequirement = PartRequirement.create(thisScene)
-		pReq.partData.append(PartData.create(partName, path, thisSkeleton))
-		parts.append(pReq)
+		data = ThingSingletonData.create(
+			partName, 
+			thingName, 
+			thisScene, 
+			thisSkeleton)
+		data.fileName = resFileName
+	return data
+
 
 static func GenerateImport(scene : Node) -> void:
-	# Check if data already exists. Update if already existing. Create if not
-	var thingName : String = scene.get_meta("ThingName")
-	var partName : String = scene.get_meta("PartName")
-	var data : ThingData
-	var newParts : Array[PartRequirement] = []
-	if FileAccess.file_exists("res://src/Things/Data/Resources/" + thingName + ".tres"):
-		data = load("res://src/Things/Data/Resources/" + thingName + ".tres")
-		newParts.append_array(data.parts)
-	else:
-		data = ThingData.create(thingName)
+	var data = createThingData(scene)
+	var connectedThings : Array[ThingSingletonData] = []
 	# Add a part requirement for each receiver. If all planes
 	# are receivers add self with 1 amount
-	var hasConnector : bool = false
 	var sceneType = _scriptCheck(scene)
 	for sceneChild in scene.get_children():
-		if sceneType == "DeformingPart" and sceneChild is Skeleton3D:
+		if sceneType == "DeformingThing" and sceneChild is Skeleton3D:
 			for skelChild in sceneChild.get_children():
 				if skelChild is BoneAttachment3D:
 					var planeMesh : MeshInstance3D = skelChild.get_child(0)
 					if planeMesh.get_meta("MeshType") == "Receiver":
-						addPartRequirement(
-							planeMesh,
-							newParts,
-							planeMesh.get_meta("ThingName"),
-							planeMesh.get_meta("PartName"),
-							scene.get_path_to(planeMesh)
-						)
-					elif planeMesh.get_meta("MeshType") == "Connector":
-						hasConnector = true
-		elif sceneType == "StaticPart" and sceneChild.get_child_count() > 0:
-			var plane = sceneChild.get_child(0)
-			if plane.has_meta("MeshType") and plane.get_meta("MeshType") == "Receiver":
-				addPartRequirement(
-					plane,
-					newParts,
-					plane.get_meta("ThingName"),
-					plane.get_meta("PartName"),
-					scene.get_path_to(plane)
-				)
-			elif plane.has_meta("MeshType") and plane.get_meta("MeshType") == "Connector":
-				hasConnector = true
-	
-	if not hasConnector:
-		addPartRequirement(scene, newParts, thingName, partName, "")
-	
-	data.parts = newParts
-	return ResourceSaver.save(data, "res://src/Things/Data/Resources/" + thingName + ".tres")
+						var childData : ThingSingletonData = createThingData(planeMesh)
+						childData.pathToReceiver = scene.get_path_to(planeMesh)
+						_checkFolder(childData.complexName)
+						ResourceSaver.save(childData, "res://src/Things/Data/Resources/" + childData.complexName + "/" + childData.fileName + ".tres")
+						connectedThings.append(childData)
+		elif sceneType == "StaticThing" and sceneChild.get_child_count() > 0:
+			var planeMesh = sceneChild.get_child(0)
+			if planeMesh.has_meta("MeshType") and planeMesh.get_meta("MeshType") == "Receiver":
+				var childData = createThingData(planeMesh)
+				childData.pathToReceiver = scene.get_path_to(planeMesh)
+				_checkFolder(childData.complexName)
+				ResourceSaver.save(childData, "res://src/Things/Data/Resources/" + childData.complexName + "/" + childData.fileName + ".tres")
+				connectedThings.append(childData)
+				
+	data.connectedThings = connectedThings
+	_checkFolder(data.complexName)
+	return ResourceSaver.save(data, "res://src/Things/Data/Resources/" + data.complexName + "/" + data.fileName + ".tres")
 
 
-static func TraversePartTree(part : Node, partParent : Node, newParts : Array[PartRequirement], rp : Node):
-	if part == null:
-		return
-	# Create requirement from current part's base info
-	addPartRequirement(
-		part,
-		newParts,
-		part.get_meta("ThingName"),
-		part.get_meta("PartName"),
-		partParent.get_path_to(rp) if rp != null else ^""
-	)
-	# Traverse through node tree
-	# Different technique for part types
-	var sceneType = _scriptCheck(part)
-	for sceneChild in part.get_children():
-		if sceneType == "DeformingPart" and sceneChild is Skeleton3D:
+static func TraversePartTree(thing : Node, thingName : String, path : NodePath) -> ThingSingletonData:
+	var data : ThingSingletonData = createThingData(thing, thingName)
+	data.pathToReceiver = path
+	var connectedThings : Array[ThingSingletonData] = []
+
+	var sceneType = _scriptCheck(thing)
+	for sceneChild in thing.get_children():
+		if sceneType == "DeformingThing" and sceneChild is Skeleton3D:
 			for skelChild in sceneChild.get_children():
 				if skelChild is BoneAttachment3D:
 					var idx = skelChild.get_children().find_custom(func(x : Node): 
 							return x.has_meta("MeshType") and x.get_meta("MeshType") == "Part")
 					var childPart = skelChild.get_child(idx) if idx != -1 else null
-					TraversePartTree(childPart, part, newParts, skelChild.get_child(0))
-		elif sceneType == "StaticPart":
+					if childPart != null:
+						var childData : ThingSingletonData = TraversePartTree(childPart, thingName, thing.get_path_to(skelChild.get_child(0)))
+						connectedThings.append(childData)
+		elif sceneType == "StaticThing":
 			var idx = sceneChild.get_children().find_custom(func(x : Node): 
 					return x.has_meta("MeshType") and x.get_meta("MeshType") == "Part")
 			var childPart = sceneChild.get_child(idx) if idx != -1 else null
-			TraversePartTree(childPart, part, newParts, sceneChild.get_child(0))
+			if childPart != null:
+				var childData : ThingSingletonData = TraversePartTree(childPart, thingName, thing.get_path_to(sceneChild.get_child(0)))
+				connectedThings.append(childData)
+			
+	data.connectedThings = connectedThings
+	ResourceSaver.save(data, "res://src/Things/Data/Resources/" + data.complexName + "/" + data.fileName + ".tres")
+	return data
 
-
-static func GenerateRuntime(part : Node, newThingName : String):
-	var data : ThingData
-	var newParts : Array[PartRequirement] = []
-	if FileAccess.file_exists("res://src/Things/Data/Resources/" + newThingName + ".tres"):
+static func GenerateRuntime(thing : Node, newThingName : String):
+	if _checkFolder(newThingName):
 		print("Thing already exists")
 		return
-	data = ThingData.create(newThingName)
-	TraversePartTree(part, null, newParts, null)
-	data.parts = newParts
-	ResourceSaver.save(data, "res://src/Things/Data/Resources/" + newThingName + ".tres")
+	TraversePartTree(thing, newThingName, ^"")

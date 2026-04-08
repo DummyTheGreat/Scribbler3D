@@ -7,7 +7,6 @@ using static System.Formats.Asn1.AsnWriter;
 public partial class WorldRoot : Node3D
 {
     public Camera3D camera;
-    private Node3D selected;
 
     public enum EditorState {
         Editor,
@@ -16,22 +15,16 @@ public partial class WorldRoot : Node3D
 
     public EditorState state;
 
-    public T GetSelected<T>() where T : class {
-        if (this.selected is T res) {
-            return res;
-        }
-        return default;
+    public Thing GetSelected<T>() where T : Thing {
+        return GetWorldSpace<WorldSpace>().selected;
     }
 
     public WorldSpace GetWorldSpace<T>() where T : WorldSpace {
-        if (this.selected is T res) {
-            return res;
-        }
         return this.GetChild<WorldSpace>(0);
     }
 
     public void ClearSelected() {
-        this.selected = null;
+        GetWorldSpace<ThingEditorSpace>().selected = null;
     }
 
     public void SwitchState(PackedScene newScene) {
@@ -44,10 +37,6 @@ public partial class WorldRoot : Node3D
         this.MoveChild(testGrounds, 0);
     }
 
-    private void SetSelected(Node3D selected) {
-        this.selected = selected;
-    }
-
     public override void _Ready() {
         FreeCam con = Load<PackedScene>("res://src/World/FreeCam.tscn").Instantiate<FreeCam>();
         this.AddChild(con);
@@ -56,7 +45,7 @@ public partial class WorldRoot : Node3D
 
         ThingEditorSpace space = this.GetChild<ThingEditorSpace>(0);
         space.PartIsMoving += con.ToggleInput;
-        space.PartSelected += SetSelected;
+        //space.PartSelected += SetSelected;
 
         this.state = EditorState.Editor;
     }

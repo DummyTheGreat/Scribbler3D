@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="ThingSingletonData" format=3 uid="uid://lr4uawo6fjqy"]
+
+[ext_resource type="Script" uid="uid://c5nb5gppgp1rq" path="res://src/Things/Data/ThingSingletonData.gd" id="1_t408p"]
+[ext_resource type="Script" uid="uid://lcxf1gf0irkb" path="res://src/Things/Data/ThingBoneData.gd" id="1_vemvd"]
+[ext_resource type="Resource" uid="uid://7wflae0s3rs2" path="res://src/Things/Data/Resources/Human/HumanLegLeftV1I1.tres" id="2_vemvd"]
+[ext_resource type="Resource" uid="uid://c5q48jctcrx30" path="res://src/Things/Data/Resources/Human/HumanLegRightV1I1.tres" id="3_qvjf6"]
+[ext_resource type="PackedScene" uid="uid://cxabio1wquigl" path="res://assets/Models/Human/Human_Pelvis_Model.glb" id="4_w4non"]
+
+[sub_resource type="Resource" id="Resource_qvjf6"]
+script = ExtResource("1_vemvd")
+
+[sub_resource type="Resource" id="Resource_w4non"]
+script = ExtResource("1_vemvd")
+boneIndex = 1
+xScale = 0.9999999
+yScale = 0.9999998
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_d818x"]
+script = ExtResource("1_vemvd")
+boneIndex = 2
+xScale = 0.99999994
+yScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_nbe7u"]
+script = ExtResource("1_vemvd")
+boneIndex = 3
+xScale = 0.99999964
+yScale = 0.99999976
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_ao1iq"]
+script = ExtResource("1_vemvd")
+boneIndex = 4
+xScale = 0.99999976
+yScale = 0.9999998
+zScale = 0.99999994
+
+[sub_resource type="Resource" id="Resource_7o6r1"]
+script = ExtResource("1_vemvd")
+boneIndex = 5
+
+[sub_resource type="Resource" id="Resource_5bk4f"]
+script = ExtResource("1_vemvd")
+boneIndex = 6
+yScale = 0.9999999
+zScale = 0.99999994
+
+[resource]
+script = ExtResource("1_t408p")
+singletonName = "Pelvis"
+boneData = Array[ExtResource("1_vemvd")]([SubResource("Resource_qvjf6"), SubResource("Resource_w4non"), SubResource("Resource_d818x"), SubResource("Resource_nbe7u"), SubResource("Resource_ao1iq"), SubResource("Resource_7o6r1"), SubResource("Resource_5bk4f")])
+scene = ExtResource("4_w4non")
+complexName = "Human"
+connectedThings = Array[ExtResource("1_t408p")]([ExtResource("2_vemvd"), ExtResource("3_qvjf6")])
+pathToReceiver = NodePath("Skeleton3D/PelvisSocket/Receiver_Human_Pelvis_V1_I1")
+fileName = "HumanPelvisV1I1"
